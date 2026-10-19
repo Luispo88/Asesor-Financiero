@@ -27,9 +27,10 @@ Diseño limpio y tipográfico: navegación translúcida, bloques de pantalla com
 index.html        Página principal
 servicios/        Índice de servicios y una página por servicio
 blog/             Índice del blog y artículos
-css/styles.css    Estilos (incluye modo oscuro y diseño responsivo)
+css/styles.css    Estilos (diseño responsivo para escritorio y celular)
 js/main.js        Calculadoras, menú móvil, pestañas y contacto por WhatsApp
 .nojekyll         Indica a GitHub Pages que publique los archivos tal cual
+sitemap.xml       Lista de páginas para Google Search Console
 ```
 
 ## Datos de contacto
@@ -58,12 +59,22 @@ python3 -m http.server 8000
 
 ## Publicar en GitHub Pages
 
-1. En GitHub, abra el repositorio y vaya a **Settings → Pages**.
-2. En **Build and deployment**, elija **Source: Deploy from a branch**.
-3. Seleccione la rama donde está el sitio (por ejemplo, `main`, o `claude/financial-advisor-market-tools-nnvdb1` mientras no se haya fusionado) y la carpeta **/ (root)**. Pulse **Save**.
-4. En uno o dos minutos el sitio estará en `https://luispo88.github.io/Asesor-Financiero/`.
+El repositorio es público, así que GitHub Pages es gratuito.
 
-GitHub Pages es gratuito para repositorios públicos. Si el repositorio es privado, necesita un plan de pago de GitHub, o puede publicarlo gratis en Netlify o Cloudflare Pages.
+1. En GitHub, abra el repositorio y vaya a **Settings → Pages**.
+2. En **Build and deployment → Source**, elija **Deploy from a branch**.
+3. En **Branch**, seleccione `claude/financial-advisor-market-tools-nnvdb1` (la rama principal del repositorio) y la carpeta **/ (root)**. Pulse **Save**.
+4. En uno o dos minutos el sitio estará en **https://luispo88.github.io/Asesor-Financiero/**. Cada cambio que se suba a esa rama se publica solo.
+
+Las páginas ya incluyen la dirección pública (etiquetas `canonical` y Open Graph), para que Google las indexe correctamente y para que el enlace muestre título y descripción al compartirlo por WhatsApp o redes sociales.
+
+### Aparecer en Google
+
+1. Entre a [Google Search Console](https://search.google.com/search-console) y agregue la propiedad con prefijo de URL `https://luispo88.github.io/Asesor-Financiero/`.
+2. Verifique la propiedad (el método de etiqueta HTML es el más sencillo: se agrega una línea en el `<head>` de `index.html`).
+3. En **Sitemaps**, envíe `https://luispo88.github.io/Asesor-Financiero/sitemap.xml`.
+
+Si más adelante conecta un dominio propio, cambie la dirección `https://luispo88.github.io/Asesor-Financiero/` por la nueva en las páginas y en `sitemap.xml`.
 
 ### Dominio propio (opcional)
 
