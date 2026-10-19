@@ -1,7 +1,7 @@
-// PERSONALIZAR: datos de contacto usados por los enlaces y el formulario.
+// Datos de contacto usados por los enlaces y el formulario.
 const CONTACTO = {
-  whatsapp: "50600000000", // Código de país + número, sin espacios ni signos.
-  email: "correo@dominio.com",
+  whatsapp: "50670123241", // Código de país + número, sin espacios ni signos.
+  email: "luis1988salas@hotmail.com",
 };
 
 const formatters = {
@@ -32,19 +32,26 @@ function montoDesdeCuota(cuota, tasaAnual, meses) {
   return (cuota * (1 - Math.pow(1 + i, -meses))) / i;
 }
 
+function whatsappUrl(texto) {
+  const base = `https://wa.me/${CONTACTO.whatsapp}`;
+  return texto ? `${base}?text=${encodeURIComponent(texto)}` : base;
+}
+
 // --- Menú móvil ---
 const toggle = document.querySelector(".nav-toggle");
 const menu = document.getElementById("menu");
-toggle.addEventListener("click", () => {
-  const open = menu.classList.toggle("open");
-  toggle.setAttribute("aria-expanded", String(open));
-});
-menu.addEventListener("click", (e) => {
-  if (e.target.tagName === "A") {
-    menu.classList.remove("open");
-    toggle.setAttribute("aria-expanded", "false");
-  }
-});
+if (toggle && menu) {
+  toggle.addEventListener("click", () => {
+    const open = menu.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", String(open));
+  });
+  menu.addEventListener("click", (e) => {
+    if (e.target.tagName === "A") {
+      menu.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+}
 
 // --- Pestañas de herramientas ---
 const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -80,8 +87,10 @@ function calcularCuota() {
   document.getElementById("cuota-intereses").textContent = formatMoney(total - monto, moneda);
   document.getElementById("cuota-total").textContent = formatMoney(total, moneda);
 }
-formCuota.addEventListener("input", calcularCuota);
-calcularCuota();
+if (formCuota) {
+  formCuota.addEventListener("input", calcularCuota);
+  calcularCuota();
+}
 
 // --- Capacidad de endeudamiento ---
 const formCap = document.getElementById("form-capacidad");
@@ -125,8 +134,10 @@ function calcularCapacidad() {
     mensaje.className = "tool-message ok";
   }
 }
-formCap.addEventListener("input", calcularCapacidad);
-calcularCapacidad();
+if (formCap) {
+  formCap.addEventListener("input", calcularCapacidad);
+  calcularCapacidad();
+}
 
 // --- Verificador PYME (Ley 8262: al menos 2 de 3 requisitos) ---
 const formPyme = document.getElementById("form-pyme");
@@ -148,13 +159,15 @@ function verificarPyme() {
     mensaje.className = "tool-message warn";
   }
 }
-formPyme.addEventListener("change", verificarPyme);
-verificarPyme();
+if (formPyme) {
+  formPyme.addEventListener("change", verificarPyme);
+  verificarPyme();
+}
 
 // --- Contacto ---
-const waBase = `https://wa.me/${CONTACTO.whatsapp}`;
+// Un enlace con data-mensaje abre WhatsApp con ese texto ya escrito.
 document.querySelectorAll("[data-whatsapp-link]").forEach((a) => {
-  a.href = waBase;
+  a.href = whatsappUrl(a.dataset.mensaje);
   a.target = "_blank";
   a.rel = "noopener";
 });
@@ -163,24 +176,27 @@ document.querySelectorAll("[data-email-link]").forEach((a) => {
 });
 
 const formContacto = document.getElementById("form-contacto");
-formContacto.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const estado = document.getElementById("form-mensaje");
-  if (!formContacto.checkValidity()) {
-    formContacto.reportValidity();
-    return;
-  }
-  const d = Object.fromEntries(new FormData(formContacto));
-  const texto = [
-    "Hola, solicito un diagnóstico gratuito.",
-    `Nombre: ${d.nombre}`,
-    `Teléfono: ${d.telefono}`,
-    `Soy: ${d.tipo}`,
-    `Me interesa: ${d.interes}`,
-    d.mensaje ? `Mensaje: ${d.mensaje}` : "",
-  ].filter(Boolean).join("\n");
-  window.open(`${waBase}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
-  estado.textContent = "Se abrió WhatsApp con su mensaje listo para enviar.";
-});
+if (formContacto) {
+  formContacto.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const estado = document.getElementById("form-mensaje");
+    if (!formContacto.checkValidity()) {
+      formContacto.reportValidity();
+      return;
+    }
+    const d = Object.fromEntries(new FormData(formContacto));
+    const texto = [
+      "Hola Luis, solicito un diagnóstico gratuito.",
+      `Nombre: ${d.nombre}`,
+      `Teléfono: ${d.telefono}`,
+      `Soy: ${d.tipo}`,
+      `Me interesa: ${d.interes}`,
+      d.mensaje ? `Mensaje: ${d.mensaje}` : "",
+    ].filter(Boolean).join("\n");
+    window.open(whatsappUrl(texto), "_blank", "noopener");
+    estado.textContent = "Se abrió WhatsApp con su mensaje listo para enviar.";
+  });
+}
 
-document.getElementById("year").textContent = new Date().getFullYear();
+const year = document.getElementById("year");
+if (year) year.textContent = new Date().getFullYear();
