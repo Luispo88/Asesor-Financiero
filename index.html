@@ -7,210 +7,228 @@
   <meta name="description" content="Asesoría financiera independiente en Costa Rica para personas y pymes: financiamiento, crédito, reestructuración de deudas y acompañamiento para obtener la condición PYME ante el MEIC.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
   <header class="site-header">
     <div class="container nav">
-      <a href="#inicio" class="brand">
+      <a href="index.html" class="brand">
         <span class="brand-mark" aria-hidden="true">LS</span>
-        <span class="brand-name">Luis Salas <small>Asesor Financiero</small></span>
+        <span class="brand-name">Luis Salas<small>Asesor Financiero</small></span>
       </a>
       <button class="nav-toggle" aria-expanded="false" aria-controls="menu" aria-label="Abrir menú">
-        <span></span><span></span><span></span>
+        <span></span><span></span>
       </button>
       <nav id="menu" class="menu" aria-label="Principal">
         <a href="servicios/index.html">Servicios</a>
-        <a href="#ruta-pyme">Ruta PYME MEIC</a>
+        <a href="#ruta-pyme">Ruta PYME</a>
         <a href="#herramientas">Herramientas</a>
         <a href="blog/index.html">Blog</a>
         <a href="#sobre-mi">Sobre mí</a>
-        <a href="#contacto" class="btn btn-small">Diagnóstico gratuito</a>
+        <a href="#contacto" class="menu-cta">Diagnóstico gratuito</a>
       </nav>
     </div>
   </header>
 
   <main>
-    <!-- HERO -->
-    <section id="inicio" class="hero">
-      <div class="container hero-grid">
-        <div>
-          <p class="eyebrow">Asesoría financiera independiente · Costa Rica</p>
-          <h1>Conozco cómo decide un banco. <span>Le ayudo a que le digan que sí.</span></h1>
-          <p class="lead">Más de 15 años en banca y 10 como ejecutivo de crédito, ahora al servicio de personas y pymes: financiamiento en mejores condiciones, deudas bajo control y su empresa formalizada como PYME ante el MEIC.</p>
-          <div class="hero-actions">
-            <a href="#contacto" class="btn">Solicitar diagnóstico gratuito</a>
-            <a href="#herramientas" class="btn btn-ghost">Probar las calculadoras</a>
+    <div class="stack">
+      <!-- Bloque principal -->
+      <section class="tile tile-hero" id="inicio">
+        <p class="eyebrow eyebrow-accent reveal">Asesoría financiera independiente · Costa Rica</p>
+        <h1 class="tile-title reveal">Su crédito, con criterio bancario.</h1>
+        <p class="tile-sub reveal">15 años en banca. 10 como ejecutivo de crédito. Ahora de su lado.</p>
+        <div class="actions reveal">
+          <a href="#contacto" class="btn">Diagnóstico gratuito</a>
+          <a href="servicios/index.html" class="btn btn-outline">Ver servicios</a>
+        </div>
+        <div class="tile-visual reveal">
+          <div class="mock" aria-hidden="true">
+            <div class="mock-row"><span>Solicitud de crédito</span><span class="chip">Expediente listo</span></div>
+            <div class="mock-amount">₡25 000 000</div>
+            <div class="mock-sub">Cuota estimada ₡556 111 · 60 meses · 12 % anual</div>
+            <div class="mock-bar"><span></span></div>
+            <div class="mock-legend"><span>Endeudamiento 25 %</span><span>Límite 40 %</span></div>
+            <ul class="mock-list">
+              <li><span>Historial crediticio (CIC)</span><strong>Revisado</strong></li>
+              <li><span>Ingresos demostrables</span><strong>Documentados</strong></li>
+              <li><span>Hacienda · CCSS · INS</span><strong>Al día</strong></li>
+            </ul>
+            <p class="mock-note">Ejemplo ilustrativo</p>
           </div>
-          <ul class="hero-proof">
-            <li><strong>15+</strong> años en banca</li>
-            <li><strong>10</strong> años como ejecutivo de crédito</li>
-            <li><strong>₡ / $</strong> crédito en colones y dólares</li>
-          </ul>
         </div>
-        <div class="hero-card" aria-hidden="true">
-          <p class="hero-card-title">Lo que revisa un banco antes de aprobar</p>
-          <ul class="check-list">
-            <li>Capacidad de pago y nivel de endeudamiento</li>
-            <li>Historial crediticio (CIC de SUGEF y burós privados)</li>
-            <li>Estados financieros y flujo de caja</li>
-            <li>Garantías y respaldo</li>
-            <li>Formalidad: Hacienda, CCSS, INS</li>
-          </ul>
-          <p class="hero-card-foot">Preparamos todo esto <em>antes</em> de presentar su solicitud.</p>
+      </section>
+
+      <!-- Bloque PYME -->
+      <section class="tile on-dark">
+        <p class="eyebrow eyebrow-accent reveal">Para pymes</p>
+        <h2 class="tile-title reveal">Condición PYME.</h2>
+        <p class="tile-sub reveal">Su empresa, formal ante el MEIC y lista para crecer.</p>
+        <div class="actions reveal">
+          <a href="servicios/condicion-pyme-meic.html" class="btn">Más información</a>
+          <a href="#herramientas" class="btn btn-outline" data-open-tab="tab-pyme">Verificar requisitos</a>
         </div>
+        <div class="tile-visual reveal">
+          <div class="req-pills" aria-hidden="true">
+            <div class="req-pill"><i></i><div>CCSS<small>Cargas sociales</small></div></div>
+            <div class="req-pill"><i></i><div>Hacienda<small>Obligaciones tributarias</small></div></div>
+            <div class="req-pill"><i></i><div>INS<small>Riesgos del trabajo</small></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Bloques de servicios -->
+    <div class="tile-grid">
+      <section class="tile tile-white">
+        <h2 class="tile-title reveal">Capacidad de crédito</h2>
+        <p class="tile-sub reveal">Sepa cuánto puede pedir antes de ir al banco.</p>
+        <div class="actions reveal">
+          <a href="servicios/capacidad-de-credito.html" class="btn btn-small">Más información</a>
+          <a href="#herramientas" class="btn btn-small btn-outline" data-open-tab="tab-capacidad">Calcular</a>
+        </div>
+        <div class="tile-art reveal" aria-hidden="true">
+          <div class="big-figure cool">40 %</div>
+          <p class="figure-caption">Límite prudente de sus ingresos para deudas</p>
+        </div>
+      </section>
+
+      <section class="tile on-dark">
+        <h2 class="tile-title reveal">Consolidación de deudas</h2>
+        <p class="tile-sub reveal">Tres deudas. Una cuota que sí puede pagar.</p>
+        <div class="actions reveal">
+          <a href="servicios/consolidacion-de-deudas.html" class="btn btn-small">Más información</a>
+        </div>
+        <div class="tile-art reveal" aria-hidden="true">
+          <div class="big-figure warm">3 → 1</div>
+          <p class="figure-caption">Tarjetas y préstamos, ordenados en un plan</p>
+        </div>
+      </section>
+
+      <section class="tile">
+        <h2 class="tile-title reveal">Crédito hipotecario</h2>
+        <p class="tile-sub reveal">De la precalificación a la firma, sin sorpresas.</p>
+        <div class="actions reveal">
+          <a href="servicios/credito-hipotecario.html" class="btn btn-small">Más información</a>
+          <a href="blog/credito-en-colones-o-dolares.html" class="btn btn-small btn-outline">¿Colones o dólares?</a>
+        </div>
+        <div class="tile-art reveal" aria-hidden="true">
+          <div class="big-figure">₡ | $</div>
+          <p class="figure-caption">Tasa fija, variable y riesgo cambiario, comparados</p>
+        </div>
+      </section>
+
+      <section class="tile tile-white">
+        <h2 class="tile-title reveal">Financiamiento pyme</h2>
+        <p class="tile-sub reveal">Un expediente que convence al banco.</p>
+        <div class="actions reveal">
+          <a href="servicios/financiamiento-pymes.html" class="btn btn-small">Más información</a>
+        </div>
+        <div class="tile-art reveal" aria-hidden="true">
+          <div class="big-figure green">SBD</div>
+          <p class="figure-caption">Banca comercial, cooperativas y Banca para el Desarrollo</p>
+        </div>
+      </section>
+
+      <section class="tile on-dark">
+        <h2 class="tile-title reveal">CFO externo</h2>
+        <p class="tile-sub reveal">Gerencia financiera para su pyme, cada mes.</p>
+        <div class="actions reveal">
+          <a href="servicios/cfo-externo.html" class="btn btn-small">Más información</a>
+        </div>
+        <div class="tile-art reveal" aria-hidden="true">
+          <div class="big-figure cool">12</div>
+          <p class="figure-caption">Meses de flujo de caja proyectado</p>
+        </div>
+      </section>
+
+      <section class="tile">
+        <p class="eyebrow eyebrow-accent reveal">Del blog</p>
+        <h2 class="tile-title reveal">¿Le rechazaron el crédito?</h2>
+        <p class="tile-sub reveal">Las 8 razones más comunes y cómo corregirlas.</p>
+        <div class="actions reveal">
+          <a href="blog/por-que-el-banco-rechazo-su-credito.html" class="btn btn-small">Leer artículo</a>
+          <a href="blog/index.html" class="btn btn-small btn-outline">Ver el blog</a>
+        </div>
+        <div class="tile-art reveal" aria-hidden="true">
+          <div class="big-figure warm">8</div>
+          <p class="figure-caption">Razones, explicadas desde adentro del banco</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Ruta PYME -->
+    <section id="ruta-pyme" class="section section-alt">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2 class="section-title">Ruta PYME MEIC.</h2>
+          <p class="section-sub">La Ley 8262 reconoce como PYME a la empresa que cumple al menos <strong>dos de tres</strong> requisitos: CCSS, Hacienda y obligaciones laborales. Así se llega al registro en el SIEC.</p>
+        </div>
+        <div class="scroller-controls">
+          <button type="button" data-scroll="-1" aria-label="Anterior">‹</button>
+          <button type="button" data-scroll="1" aria-label="Siguiente">›</button>
+        </div>
+      </div>
+      <div class="scroller" id="ruta-scroller" tabindex="0" aria-label="Pasos de la ruta PYME">
+        <article class="step-card">
+          <span class="step-num">Paso 1</span>
+          <h3>Defina la figura legal.</h3>
+          <p>Persona física con actividad lucrativa o sociedad inscrita en el Registro Nacional, con su declaración de beneficiarios finales ante el BCCR.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-num">Paso 2</span>
+          <h3>Inscríbase en Hacienda.</h3>
+          <p>Actividad económica, régimen tradicional o simplificado y facturación electrónica.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-num">Paso 3</span>
+          <h3>Inscríbase en la CCSS.</h3>
+          <p>Como patrono o como trabajador independiente, con las cuotas siempre al día.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-num">Paso 4</span>
+          <h3>Póliza del INS.</h3>
+          <p>La póliza de riesgos del trabajo es obligatoria si tiene personal a cargo.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-num">Paso 5</span>
+          <h3>Permisos de operación.</h3>
+          <p>Patente municipal y, según la actividad, permiso sanitario de funcionamiento.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-num">Paso 6</span>
+          <h3>Registro en el SIEC.</h3>
+          <p>Con su personal, ventas y activos, el MEIC la clasifica como micro, pequeña o mediana y emite la condición PYME, que debe renovarse.</p>
+        </article>
+      </div>
+      <div class="container">
+        <div class="benefits reveal">
+          <div class="benefit"><strong>Programas de apoyo</strong><span>Capacitación y acompañamiento del MEIC y otras instituciones.</span></div>
+          <div class="benefit"><strong>Financiamiento</strong><span>Crédito y avales del SBD y fondos como FODEMIPYME.</span></div>
+          <div class="benefit"><strong>Innovación</strong><span>Fondos no reembolsables, como PROPYME.</span></div>
+          <div class="benefit"><strong>Compras públicas</strong><span>Beneficios para venderle al Estado.</span></div>
+        </div>
+        <p class="note center">Información general con fines orientativos. Requisitos, plataformas y plazos pueden cambiar: verifíquelos siempre con el MEIC y las instituciones correspondientes.</p>
       </div>
     </section>
 
-    <!-- PERSONAS -->
-    <section id="personas" class="section">
+    <!-- Herramientas -->
+    <section id="herramientas" class="section">
       <div class="container">
-        <p class="eyebrow">Para personas</p>
-        <h2>Finanzas personales con criterio bancario</h2>
-        <div class="cards">
-          <article class="card">
-            <h3>Diagnóstico de capacidad de crédito</h3>
-            <p>Analizamos ingresos, deudas e historial para saber cuánto puede solicitar realmente y qué debe corregir antes de ir al banco.</p>
-            <a href="servicios/capacidad-de-credito.html" class="link-arrow">Ver más</a>
-          </article>
-          <article class="card">
-            <h3>Consolidación y reestructuración de deudas</h3>
-            <p>Ordenamos tarjetas y préstamos, comparamos alternativas y negociamos para bajar su cuota mensual y el costo total.</p>
-            <a href="servicios/consolidacion-de-deudas.html" class="link-arrow">Ver más</a>
-          </article>
-          <article class="card">
-            <h3>Acompañamiento hipotecario</h3>
-            <p>Desde la precalificación hasta la formalización: comparación de ofertas, tasa variable vs. fija y riesgo cambiario si el crédito es en dólares.</p>
-            <a href="servicios/credito-hipotecario.html" class="link-arrow">Ver más</a>
-          </article>
-          <article class="card">
-            <h3>Comparación de ofertas</h3>
-            <p>Revisamos tasa de referencia (TBP, TRI o SOFR), margen, comisiones, seguros y plazo para que compare el costo real y no solo la tasa anunciada.</p>
-            <a href="servicios/capacidad-de-credito.html" class="link-arrow">Ver más</a>
-          </article>
-          <article class="card">
-            <h3>Presupuesto y plan financiero</h3>
-            <p>Un plan claro de ingresos, gastos, fondo de emergencia y metas de ahorro, con seguimiento periódico.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- PYMES -->
-    <section id="pymes" class="section section-alt">
-      <div class="container">
-        <p class="eyebrow">Para pymes</p>
-        <h2>El aliado financiero que su empresa necesita</h2>
-        <div class="cards">
-          <article class="card">
-            <h3>Gestión de financiamiento</h3>
-            <p>Preparamos el expediente completo: estados financieros, flujo proyectado, plan de inversión y garantías, y le acompañamos con bancos, cooperativas y el Sistema de Banca para el Desarrollo (SBD).</p>
-            <a href="servicios/financiamiento-pymes.html" class="link-arrow">Ver más</a>
-          </article>
-          <article class="card highlight">
-            <h3>Condición PYME ante el MEIC</h3>
-            <p>Le guiamos en la formalización y en el registro de su empresa ante el MEIC para acceder a programas de apoyo, financiamiento y beneficios en compras públicas.</p>
-            <a href="servicios/condicion-pyme-meic.html" class="link-arrow">Ver el servicio</a>
-          </article>
-          <article class="card">
-            <h3>CFO externo</h3>
-            <p>Acompañamiento mensual: flujo de caja, presupuesto, indicadores clave y relación con las entidades financieras, sin el costo de un gerente financiero a tiempo completo.</p>
-            <a href="servicios/cfo-externo.html" class="link-arrow">Ver más</a>
-          </article>
-          <article class="card">
-            <h3>Reestructuración de pasivos</h3>
-            <p>Reorganizamos las deudas de la empresa para liberar flujo de caja, mejorar plazos y negociar mejores condiciones.</p>
-            <a href="servicios/cfo-externo.html" class="link-arrow">Ver más</a>
-          </article>
-          <article class="card">
-            <h3>Diagnóstico financiero</h3>
-            <p>Razones de liquidez, endeudamiento y rentabilidad, punto de equilibrio y recomendaciones concretas para crecer con orden.</p>
-            <a href="servicios/cfo-externo.html" class="link-arrow">Ver más</a>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- RUTA PYME MEIC -->
-    <section id="ruta-pyme" class="section">
-      <div class="container">
-        <p class="eyebrow">Ruta PYME</p>
-        <h2>Cómo obtener la condición PYME ante el MEIC</h2>
-        <p class="section-intro">La Ley 8262 de Fortalecimiento de las Pequeñas y Medianas Empresas reconoce como PYME a la empresa que cumple <strong>al menos dos de tres</strong> requisitos: estar al día con las cargas sociales (CCSS), con las obligaciones tributarias (Hacienda) y con las obligaciones laborales (como la póliza de riesgos del trabajo del INS). El registro se hace en línea en el Sistema de Información Empresarial Costarricense (SIEC) del MEIC.</p>
-
-        <ol class="steps">
-          <li class="step">
-            <span class="step-num">1</span>
-            <div>
-              <h3>Defina la figura legal</h3>
-              <p>Persona física con actividad lucrativa o sociedad (por ejemplo, S.R.L. o S.A.) inscrita en el Registro Nacional. Si es sociedad, incluye la declaración en el Registro de Transparencia y Beneficiarios Finales (BCCR).</p>
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-num">2</span>
-            <div>
-              <h3>Inscríbase en Hacienda</h3>
-              <p>Registro de la actividad económica en la plataforma tributaria del Ministerio de Hacienda, elección del régimen (tradicional o simplificado) y facturación electrónica.</p>
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-num">3</span>
-            <div>
-              <h3>Inscríbase en la CCSS</h3>
-              <p>Como patrono si tiene colaboradores, o como trabajador independiente, y mantenga las cuotas al día.</p>
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-num">4</span>
-            <div>
-              <h3>Póliza de riesgos del trabajo (INS)</h3>
-              <p>Obligatoria si tiene personal a cargo. Junto con CCSS y Hacienda forma los tres requisitos que valida el MEIC.</p>
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-num">5</span>
-            <div>
-              <h3>Permisos de operación</h3>
-              <p>Patente municipal y, según la actividad, permiso sanitario de funcionamiento del Ministerio de Salud u otros permisos sectoriales.</p>
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-num">6</span>
-            <div>
-              <h3>Registro en el SIEC del MEIC</h3>
-              <p>Se ingresan los datos de la empresa: personal promedio, ventas anuales y activos. Con ellos el MEIC la clasifica como micro, pequeña o mediana empresa y emite la condición PYME, que debe mantenerse vigente y renovarse.</p>
-            </div>
-          </li>
-        </ol>
-
-        <div class="benefits">
-          <h3>¿Para qué sirve la condición PYME?</h3>
-          <ul class="check-list cols">
-            <li>Acceso a programas de apoyo y capacitación del MEIC y otras instituciones</li>
-            <li>Opciones de financiamiento y avales del Sistema de Banca para el Desarrollo y fondos como FODEMIPYME</li>
-            <li>Acceso a fondos no reembolsables para innovación (por ejemplo, PROPYME)</li>
-            <li>Beneficios para participar en compras públicas</li>
-            <li>Una empresa formal y ordenada, mejor evaluada por las entidades financieras</li>
-          </ul>
-        </div>
-        <p class="note">Información general con fines orientativos. Requisitos, plataformas y plazos pueden cambiar: verifíquelos siempre con el MEIC y las instituciones correspondientes.</p>
-      </div>
-    </section>
-
-    <!-- HERRAMIENTAS -->
-    <section id="herramientas" class="section section-alt">
-      <div class="container">
-        <p class="eyebrow">Herramientas gratuitas</p>
-        <h2>Haga sus números antes de ir al banco</h2>
-
-        <div class="tabs" role="tablist" aria-label="Calculadoras">
-          <button role="tab" id="tab-cuota" aria-controls="panel-cuota" aria-selected="true">Cuota de crédito</button>
-          <button role="tab" id="tab-capacidad" aria-controls="panel-capacidad" aria-selected="false" tabindex="-1">Capacidad de endeudamiento</button>
-          <button role="tab" id="tab-pyme" aria-controls="panel-pyme" aria-selected="false" tabindex="-1">¿Califico como PYME?</button>
+        <div class="section-head reveal">
+          <h2 class="section-title">Haga sus números.</h2>
+          <p class="section-sub">Calculadoras gratuitas para llegar al banco sabiendo lo que puede pedir.</p>
         </div>
 
-        <!-- Calculadora de cuota -->
+        <div class="segmented-wrap">
+          <div class="segmented" role="tablist" aria-label="Calculadoras">
+            <button role="tab" id="tab-cuota" aria-controls="panel-cuota" aria-selected="true">Cuota de crédito</button>
+            <button role="tab" id="tab-capacidad" aria-controls="panel-capacidad" aria-selected="false" tabindex="-1">Capacidad de endeudamiento</button>
+            <button role="tab" id="tab-pyme" aria-controls="panel-pyme" aria-selected="false" tabindex="-1">¿Califico como PYME?</button>
+          </div>
+        </div>
+
         <div class="tool" role="tabpanel" id="panel-cuota" aria-labelledby="tab-cuota">
           <form class="tool-form" id="form-cuota" novalidate>
             <label>Moneda
@@ -238,11 +256,10 @@
               <div><dt>Total de intereses</dt><dd id="cuota-intereses">—</dd></div>
               <div><dt>Total a pagar</dt><dd id="cuota-total">—</dd></div>
             </dl>
-            <p class="note">Cálculo con cuota nivelada (sistema francés). No incluye seguros, comisiones ni variaciones de tasa en créditos con tasa variable.</p>
+            <p class="note">Cuota nivelada (sistema francés). No incluye seguros, comisiones ni variaciones de tasa en créditos con tasa variable.</p>
           </div>
         </div>
 
-        <!-- Capacidad de endeudamiento -->
         <div class="tool" role="tabpanel" id="panel-capacidad" aria-labelledby="tab-capacidad" hidden>
           <form class="tool-form" id="form-capacidad" novalidate>
             <label>Moneda
@@ -282,7 +299,6 @@
           </div>
         </div>
 
-        <!-- Verificador PYME -->
         <div class="tool" role="tabpanel" id="panel-pyme" aria-labelledby="tab-pyme" hidden>
           <form class="tool-form" id="form-pyme">
             <fieldset>
@@ -304,67 +320,50 @@
       </div>
     </section>
 
-    <!-- PROCESO -->
-    <section class="section">
+    <!-- Sobre mí -->
+    <section id="sobre-mi" class="section on-dark">
       <div class="container">
-        <p class="eyebrow">Cómo trabajamos</p>
-        <h2>Un proceso claro, de principio a fin</h2>
-        <ol class="process">
-          <li><strong>Diagnóstico gratuito</strong><span>Una conversación de 30 minutos para entender su situación.</span></li>
-          <li><strong>Propuesta</strong><span>Alcance, plazos y honorarios por escrito, sin sorpresas.</span></li>
-          <li><strong>Ejecución</strong><span>Análisis, expediente, gestiones y negociación.</span></li>
-          <li><strong>Seguimiento</strong><span>Acompañamiento hasta lograr el resultado y después.</span></li>
-        </ol>
-      </div>
-    </section>
-
-    <!-- SOBRE MÍ -->
-    <section id="sobre-mi" class="section section-alt">
-      <div class="container about">
-        <div class="about-photo" aria-hidden="true">LS</div>
-        <div>
+        <div class="section-head reveal">
           <p class="eyebrow">Sobre mí</p>
-          <h2>Luis Salas</h2>
-          <p>Licenciado en Administración con énfasis en Finanzas, con más de 15 años de experiencia en el sector bancario costarricense, de los cuales cerca de 10 he trabajado como ejecutivo de crédito para personas y empresas.</p>
-          <p>He analizado cientos de solicitudes de crédito y conozco desde adentro qué buscan las entidades financieras. Hoy pongo esa experiencia de su lado, como asesor independiente: sin vender productos de ningún banco y buscando siempre la mejor opción para usted.</p>
-          <ul class="tags">
-            <li>Análisis de crédito</li>
-            <li>Finanzas corporativas</li>
-            <li>Banca para el Desarrollo</li>
-            <li>Formalización PYME</li>
-          </ul>
+          <h2 class="section-title">Luis Salas.</h2>
+          <p class="section-sub">Licenciado en Administración con énfasis en Finanzas.</p>
         </div>
+        <div class="stats reveal">
+          <div class="stat"><strong>15+</strong><span>años en banca</span></div>
+          <div class="stat"><strong>10</strong><span>años como ejecutivo de crédito</span></div>
+          <div class="stat"><strong>₡ | $</strong><span>crédito en colones y dólares</span></div>
+        </div>
+        <p class="about-text reveal">He analizado cientos de solicitudes de crédito y conozco desde adentro <strong>qué buscan las entidades financieras</strong>. Hoy pongo esa experiencia de su lado, como asesor independiente: <strong>sin vender productos de ningún banco</strong> y buscando siempre la mejor opción para usted.</p>
+        <ul class="tags reveal">
+          <li>Análisis de crédito</li>
+          <li>Finanzas corporativas</li>
+          <li>Banca para el Desarrollo</li>
+          <li>Formalización PYME</li>
+        </ul>
       </div>
     </section>
 
-    <!-- BLOG -->
-    <section class="section">
+    <!-- Cómo trabajamos -->
+    <section class="section section-alt">
       <div class="container">
-        <p class="eyebrow">Del blog</p>
-        <h2>Información útil antes de pedir un crédito</h2>
-        <div class="cards">
-          <a class="card card-link" href="blog/por-que-el-banco-rechazo-su-credito.html">
-            <h3>¿Por qué el banco rechazó su crédito?</h3>
-            <p>Las razones más comunes desde la perspectiva de un ejecutivo de crédito, y cómo corregirlas.</p>
-          </a>
-          <a class="card card-link" href="blog/condicion-pyme-meic-paso-a-paso.html">
-            <h3>Condición PYME ante el MEIC, paso a paso</h3>
-            <p>Requisitos, orden de los trámites y beneficios de registrar su empresa.</p>
-          </a>
-          <a class="card card-link" href="blog/credito-en-colones-o-dolares.html">
-            <h3>¿Crédito en colones o en dólares?</h3>
-            <p>El riesgo cambiario que pocos explican y cómo decidir con números.</p>
-          </a>
+        <div class="section-head reveal">
+          <h2 class="section-title">Simple, de principio a fin.</h2>
         </div>
-        <p><a href="blog/index.html" class="link-arrow">Ver todos los artículos</a></p>
+        <div class="cards cards-4 reveal">
+          <div class="card"><span class="card-tag">01</span><h3>Diagnóstico gratuito</h3><p>Una conversación de 30 minutos para entender su situación.</p></div>
+          <div class="card"><span class="card-tag">02</span><h3>Propuesta</h3><p>Alcance, plazos y honorarios por escrito, sin sorpresas.</p></div>
+          <div class="card"><span class="card-tag">03</span><h3>Ejecución</h3><p>Análisis, expediente, gestiones y negociación.</p></div>
+          <div class="card"><span class="card-tag">04</span><h3>Seguimiento</h3><p>Acompañamiento hasta lograr el resultado, y después.</p></div>
+        </div>
       </div>
     </section>
 
     <!-- FAQ -->
-    <section class="section section-alt">
+    <section class="section">
       <div class="container narrow">
-        <p class="eyebrow">Preguntas frecuentes</p>
-        <h2>Resolvemos sus dudas</h2>
+        <div class="section-head reveal">
+          <h2 class="section-title">Preguntas frecuentes.</h2>
+        </div>
         <details>
           <summary>¿Usted trabaja para algún banco?</summary>
           <p>No. Soy asesor independiente y mis honorarios los paga el cliente. Si en algún caso existiera una comisión de un tercero, se lo informo por escrito antes de empezar.</p>
@@ -388,20 +387,20 @@
       </div>
     </section>
 
-    <!-- CONTACTO -->
-    <section id="contacto" class="section section-cta">
+    <!-- Contacto -->
+    <section id="contacto" class="section on-dark">
       <div class="container contact">
-        <div>
-          <p class="eyebrow">Diagnóstico gratuito</p>
-          <h2>Conversemos sobre sus finanzas</h2>
-          <p>Cuénteme brevemente su situación y le contactaré en menos de 24 horas hábiles.</p>
+        <div class="reveal">
+          <p class="eyebrow eyebrow-accent">Diagnóstico gratuito</p>
+          <h2>Conversemos sobre sus finanzas.</h2>
+          <p class="section-sub" style="margin: 0;">Cuénteme brevemente su situación y le contacto en menos de 24 horas hábiles.</p>
           <ul class="contact-list">
-            <li><span>WhatsApp</span> <a href="https://wa.me/50670123241" data-whatsapp-link>+506 7012-3241</a></li>
-            <li><span>Correo</span> <a href="mailto:luis1988salas@hotmail.com" data-email-link>luis1988salas@hotmail.com</a></li>
-            <li><span>Atención</span> Virtual en todo el país y presencial con cita previa</li>
+            <li><span>WhatsApp</span><a href="https://wa.me/50670123241" data-whatsapp-link>+506 7012-3241</a></li>
+            <li><span>Correo</span><a href="mailto:luis1988salas@hotmail.com" data-email-link>luis1988salas@hotmail.com</a></li>
+            <li><span>Atención</span>Virtual en todo el país y presencial con cita previa</li>
           </ul>
         </div>
-        <form id="form-contacto" class="contact-form">
+        <form id="form-contacto" class="contact-form reveal">
           <label>Nombre
             <input type="text" name="nombre" required autocomplete="name">
           </label>
@@ -436,15 +435,49 @@
   </main>
 
   <footer class="site-footer">
-    <div class="container footer-grid">
-      <div>
-        <p class="brand-name">Luis Salas <small>Asesor Financiero</small></p>
-        <p>Asesoría financiera independiente para personas y pymes en Costa Rica.</p>
+    <div class="container">
+      <div class="footer-notes">
+        <p>La información y las calculadoras de este sitio son orientativas y no constituyen una oferta de crédito ni una recomendación de inversión. Las condiciones finales las define cada entidad financiera.</p>
+        <p>No se ofrece asesoría de inversión en valores ni intermediación de seguros. Los trámites ante el MEIC, Hacienda, la CCSS y el INS pueden cambiar; verifíquelos con cada institución.</p>
       </div>
-      <p class="disclaimer">La información y las calculadoras de este sitio son orientativas y no constituyen una oferta de crédito ni una recomendación de inversión. Las condiciones finales las define cada entidad financiera. No se ofrece asesoría de inversión en valores ni intermediación de seguros.</p>
-    </div>
-    <div class="container footer-bottom">
-      <p>© <span id="year"></span> Luis Salas. Todos los derechos reservados.</p>
+      <div class="footer-cols">
+        <div>
+          <h4>Personas</h4>
+          <ul>
+            <li><a href="servicios/capacidad-de-credito.html">Capacidad de crédito</a></li>
+            <li><a href="servicios/consolidacion-de-deudas.html">Consolidación de deudas</a></li>
+            <li><a href="servicios/credito-hipotecario.html">Crédito hipotecario</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Pymes</h4>
+          <ul>
+            <li><a href="servicios/financiamiento-pymes.html">Financiamiento pyme</a></li>
+            <li><a href="servicios/condicion-pyme-meic.html">Condición PYME MEIC</a></li>
+            <li><a href="servicios/cfo-externo.html">CFO externo</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Recursos</h4>
+          <ul>
+            <li><a href="index.html#herramientas">Calculadoras</a></li>
+            <li><a href="index.html#ruta-pyme">Ruta PYME</a></li>
+            <li><a href="blog/index.html">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Contacto</h4>
+          <ul>
+            <li><a href="https://wa.me/50670123241" data-whatsapp-link>WhatsApp +506 7012-3241</a></li>
+            <li><a href="mailto:luis1988salas@hotmail.com" data-email-link>luis1988salas@hotmail.com</a></li>
+            <li><a href="index.html#contacto">Diagnóstico gratuito</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>Copyright © <span id="year"></span> Luis Salas. Todos los derechos reservados.</p>
+        <p>Costa Rica</p>
+      </div>
     </div>
   </footer>
 

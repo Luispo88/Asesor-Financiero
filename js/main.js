@@ -198,5 +198,50 @@ if (formContacto) {
   });
 }
 
+// Enlaces que abren una calculadora concreta.
+document.querySelectorAll("[data-open-tab]").forEach((a) => {
+  a.addEventListener("click", () => {
+    const tab = document.getElementById(a.dataset.openTab);
+    if (tab) selectTab(tab);
+  });
+});
+
+// --- Carrusel horizontal ---
+const scroller = document.getElementById("ruta-scroller");
+if (scroller) {
+  const botones = document.querySelectorAll("[data-scroll]");
+  const actualizar = () => {
+    const max = scroller.scrollWidth - scroller.clientWidth - 2;
+    botones.forEach((b) => {
+      b.disabled = b.dataset.scroll === "-1" ? scroller.scrollLeft <= 2 : scroller.scrollLeft >= max;
+    });
+  };
+  botones.forEach((b) => {
+    b.addEventListener("click", () => {
+      const paso = scroller.firstElementChild.getBoundingClientRect().width + 20;
+      scroller.scrollBy({ left: paso * Number(b.dataset.scroll), behavior: "smooth" });
+    });
+  });
+  scroller.addEventListener("scroll", actualizar, { passive: true });
+  window.addEventListener("resize", actualizar);
+  actualizar();
+}
+
+// --- Aparición suave al hacer scroll ---
+const revelables = document.querySelectorAll(".reveal");
+if ("IntersectionObserver" in window) {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { rootMargin: "0px 0px -8% 0px" });
+  revelables.forEach((el) => observer.observe(el));
+} else {
+  revelables.forEach((el) => el.classList.add("visible"));
+}
+
 const year = document.getElementById("year");
 if (year) year.textContent = new Date().getFullYear();

@@ -2,6 +2,8 @@
 
 Sitio web estático de asesoría financiera independiente en Costa Rica, dirigido a personas físicas y pymes.
 
+Diseño limpio y tipográfico: navegación translúcida, bloques de pantalla completa que alternan fondos claros y oscuros, titulares grandes, botones tipo píldora y animaciones suaves al hacer scroll.
+
 ## Contenido
 
 - **Servicios para personas**: capacidad de crédito, reestructuración de deudas, crédito hipotecario, comparación de ofertas y plan financiero.
