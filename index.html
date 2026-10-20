@@ -303,6 +303,9 @@
                 <input type="number" name="limiteMax" min="1" max="100" step="1" value="60" required>
               </label>
             </div>
+            <label>Monto de crédito deseado (opcional)
+              <input type="number" name="deseado" min="0" step="1000" value="15000000" placeholder="Ej.: 15000000">
+            </label>
             <label>Tasa anual del nuevo crédito (%)
               <input type="number" name="tasa" min="0" max="100" step="0.01" value="12" required>
             </label>
@@ -317,6 +320,12 @@
             <div class="result-range">
               <div><span id="cap-min-label">Con 50 %</span><strong id="cap-monto-min">—</strong></div>
               <div><span id="cap-max-label">Con 60 %</span><strong id="cap-monto-max">—</strong></div>
+            </div>
+            <div class="desired" id="cap-deseado-box" hidden>
+              <span>Cuota estimada del crédito deseado (<span id="cap-deseado-monto">—</span>)</span>
+              <strong id="cap-deseado-cuota">—</strong>
+              <p class="desired-detail">Endeudamiento total con este crédito: <b id="cap-deseado-pct">—</b></p>
+              <p id="cap-deseado-msg" class="tool-message"></p>
             </div>
             <dl class="result-list">
               <div id="cap-cargas-row"><dt>Cargas sociales rebajadas</dt><dd id="cap-cargas">—</dd></div>

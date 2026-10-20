@@ -145,7 +145,9 @@ function calcularCapacidad() {
   const limiteB = readNumber(formCap, "limiteMax");
   const tasa = readNumber(formCap, "tasa");
   const plazo = Math.round(readNumber(formCap, "plazo"));
+  const deseado = readNumber(formCap, "deseado");
   const mensaje = document.getElementById("cap-mensaje");
+  const caja = document.getElementById("cap-deseado-box");
   const meter = document.getElementById("cap-meter");
   const mark = document.getElementById("cap-meter-mark");
   const set = (id, texto) => (document.getElementById(id).textContent = texto);
@@ -166,6 +168,7 @@ function calcularCapacidad() {
     mensaje.textContent = "Complete los datos para calcular.";
     mensaje.className = "tool-message";
     meter.style.width = "0";
+    caja.hidden = true;
     return;
   }
 
@@ -190,6 +193,27 @@ function calcularCapacidad() {
     : `${formatMoney(cuotaMin, moneda)} – ${formatMoney(cuotaMax, moneda)}`);
   set("cap-actual", `${actualPct.toLocaleString("es-CR", { maximumFractionDigits: 1 })} % del ingreso neto`);
   set("cap-meter-max", `${maximo} %`);
+
+  // Crédito deseado: cuota estimada y endeudamiento total que resultaría.
+  caja.hidden = !(deseado > 0);
+  if (deseado > 0) {
+    const cuotaDeseada = cuotaNivelada(deseado, tasa, plazo);
+    const totalPct = ((deudas + cuotaDeseada) / neto) * 100;
+    const msg = document.getElementById("cap-deseado-msg");
+    set("cap-deseado-monto", formatMoney(deseado, moneda));
+    set("cap-deseado-cuota", formatMoney(cuotaDeseada, moneda));
+    set("cap-deseado-pct", `${totalPct.toLocaleString("es-CR", { maximumFractionDigits: 1 })} % del ingreso neto`);
+    if (totalPct <= minimo) {
+      msg.textContent = `La cuota cabe dentro del ${minimo} % de su ingreso neto.`;
+      msg.className = "tool-message ok";
+    } else if (totalPct <= maximo) {
+      msg.textContent = `Su endeudamiento quedaría entre ${minimo} % y ${maximo} %. Algunas entidades podrían aprobarlo según su historial y garantías.`;
+      msg.className = "tool-message warn";
+    } else {
+      msg.textContent = `Supera el ${maximo} % de su ingreso neto. Considere un monto de hasta ${formatMoney(montoDesdeCuota(cuotaMax, tasa, plazo), moneda)} o un plazo mayor.`;
+      msg.className = "tool-message warn";
+    }
+  }
 
   meter.style.width = `${Math.min(100, (actualPct / maximo) * 100)}%`;
   meter.classList.toggle("warn", actualPct >= minimo);
