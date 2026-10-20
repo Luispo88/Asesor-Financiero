@@ -56,7 +56,7 @@
             <div class="mock-amount">₡25 000 000</div>
             <div class="mock-sub">Cuota estimada ₡556 111 · 60 meses · 12 % anual</div>
             <div class="mock-bar"><span></span></div>
-            <div class="mock-legend"><span>Endeudamiento 25 %</span><span>Límite 40 %</span></div>
+            <div class="mock-legend"><span>Endeudamiento 25 %</span><span>Rango 50–60 %</span></div>
             <ul class="mock-list">
               <li><span>Historial crediticio (CIC)</span><strong>Revisado</strong></li>
               <li><span>Ingresos demostrables</span><strong>Documentados</strong></li>
@@ -96,8 +96,8 @@
           <a href="#herramientas" class="btn btn-small btn-outline" data-open-tab="tab-capacidad">Calcular</a>
         </div>
         <div class="tile-art reveal" aria-hidden="true">
-          <div class="big-figure cool">40 %</div>
-          <p class="figure-caption">Límite prudente de sus ingresos para deudas</p>
+          <div class="big-figure cool big-figure-wide">50–60 %</div>
+          <p class="figure-caption">Rango de endeudamiento que suelen aceptar las entidades</p>
         </div>
       </section>
 
@@ -275,15 +275,30 @@
                 <option value="USD">Dólares ($)</option>
               </select>
             </label>
-            <label>Ingreso neto mensual
+            <label>Tipo de ingreso
+              <select name="tipo">
+                <option value="asalariado">Asalariado (salario bruto)</option>
+                <option value="neto">Independiente o ingreso ya neto</option>
+              </select>
+            </label>
+            <label><span id="cap-ingreso-label">Salario bruto mensual</span>
               <input type="number" name="ingreso" min="0" step="1000" value="1200000" required>
+            </label>
+            <label id="cap-cargas-field">Cargas sociales del trabajador (%)
+              <input type="number" name="cargas" min="0" max="100" step="0.01" value="10.83" required>
+              <small class="field-hint">CCSS: SEM 5,50 % + IVM 4,33 % + Banco Popular 1,00 %</small>
             </label>
             <label>Cuotas de deudas actuales (mensual)
               <input type="number" name="deudas" min="0" step="1000" value="150000" required>
             </label>
-            <label>Porcentaje máximo del ingreso para deudas (%)
-              <input type="number" name="limite" min="1" max="100" step="1" value="40" required>
-            </label>
+            <div class="field-row">
+              <label>Endeudamiento desde (%)
+                <input type="number" name="limiteMin" min="1" max="100" step="1" value="50" required>
+              </label>
+              <label>hasta (%)
+                <input type="number" name="limiteMax" min="1" max="100" step="1" value="60" required>
+              </label>
+            </div>
             <label>Tasa anual del nuevo crédito (%)
               <input type="number" name="tasa" min="0" max="100" step="0.01" value="12" required>
             </label>
@@ -293,16 +308,22 @@
           </form>
           <div class="tool-result" aria-live="polite">
             <div class="result-main">
-              <span>Monto máximo aproximado</span>
-              <strong id="cap-monto">—</strong>
+              <span>Monto máximo aproximado del nuevo crédito</span>
+            </div>
+            <div class="result-range">
+              <div><span id="cap-min-label">Con 50 %</span><strong id="cap-monto-min">—</strong></div>
+              <div><span id="cap-max-label">Con 60 %</span><strong id="cap-monto-max">—</strong></div>
             </div>
             <dl class="result-list">
+              <div id="cap-cargas-row"><dt>Cargas sociales rebajadas</dt><dd id="cap-cargas">—</dd></div>
+              <div><dt>Ingreso neto considerado</dt><dd id="cap-neto">—</dd></div>
               <div><dt>Cuota disponible para el nuevo crédito</dt><dd id="cap-cuota">—</dd></div>
               <div><dt>Endeudamiento actual</dt><dd id="cap-actual">—</dd></div>
             </dl>
-            <div class="meter" aria-hidden="true"><span id="cap-meter"></span></div>
+            <div class="meter" aria-hidden="true"><span id="cap-meter"></span><i id="cap-meter-mark"></i></div>
+            <div class="meter-legend" aria-hidden="true"><span>0 %</span><span id="cap-meter-max">60 %</span></div>
             <p id="cap-mensaje" class="tool-message"></p>
-            <p class="note">Referencia orientativa. Cada entidad aplica sus propias políticas de capacidad de pago, análisis de estrés de tasa y tipo de cambio, e historial crediticio.</p>
+            <p class="note">Referencia orientativa. Para asalariados se rebajan las cargas sociales del trabajador; no se incluye el impuesto sobre la renta ni otras deducciones. Cada entidad aplica sus propias políticas de capacidad de pago, análisis de estrés de tasa y tipo de cambio, e historial crediticio.</p>
           </div>
         </div>
 

@@ -93,41 +93,67 @@ if (formCuota) {
 }
 
 // --- Capacidad de endeudamiento ---
+// Para asalariados, el ingreso se toma bruto y se rebajan las cargas sociales del trabajador
+// (CCSS: SEM 5,50 % + IVM 4,33 % + Banco Popular 1,00 %), igual que el salario líquido que analiza el banco.
 const formCap = document.getElementById("form-capacidad");
 function calcularCapacidad() {
   const moneda = formCap.elements.moneda.value;
+  const asalariado = formCap.elements.tipo.value === "asalariado";
   const ingreso = readNumber(formCap, "ingreso");
+  const cargasPct = asalariado ? readNumber(formCap, "cargas") : 0;
   const deudas = readNumber(formCap, "deudas");
-  const limite = readNumber(formCap, "limite");
+  const limiteA = readNumber(formCap, "limiteMin");
+  const limiteB = readNumber(formCap, "limiteMax");
   const tasa = readNumber(formCap, "tasa");
   const plazo = Math.round(readNumber(formCap, "plazo"));
   const mensaje = document.getElementById("cap-mensaje");
   const meter = document.getElementById("cap-meter");
+  const mark = document.getElementById("cap-meter-mark");
+  const set = (id, texto) => (document.getElementById(id).textContent = texto);
 
-  if (!(ingreso > 0) || !(deudas >= 0) || !(limite > 0) || !(tasa >= 0) || !(plazo >= 1)) {
-    ["cap-monto", "cap-cuota", "cap-actual"].forEach((id) => (document.getElementById(id).textContent = "—"));
+  document.getElementById("cap-ingreso-label").textContent = asalariado ? "Salario bruto mensual" : "Ingreso neto mensual";
+  document.getElementById("cap-cargas-field").hidden = !asalariado;
+  document.getElementById("cap-cargas-row").hidden = !asalariado;
+
+  const valido = ingreso > 0 && cargasPct >= 0 && cargasPct < 100 && deudas >= 0 &&
+    limiteA > 0 && limiteB > 0 && tasa >= 0 && plazo >= 1;
+  if (!valido) {
+    ["cap-monto-min", "cap-monto-max", "cap-cargas", "cap-neto", "cap-cuota", "cap-actual"].forEach((id) => set(id, "—"));
     mensaje.textContent = "Complete los datos para calcular.";
     mensaje.className = "tool-message";
     meter.style.width = "0";
     return;
   }
 
-  const actualPct = (deudas / ingreso) * 100;
-  const cuotaDisponible = Math.max(0, ingreso * (limite / 100) - deudas);
-  const monto = montoDesdeCuota(cuotaDisponible, tasa, plazo);
+  const minimo = Math.min(limiteA, limiteB);
+  const maximo = Math.max(limiteA, limiteB);
+  const cargas = ingreso * (cargasPct / 100);
+  const neto = ingreso - cargas;
+  const actualPct = (deudas / neto) * 100;
+  const cuotaMin = Math.max(0, neto * (minimo / 100) - deudas);
+  const cuotaMax = Math.max(0, neto * (maximo / 100) - deudas);
 
-  document.getElementById("cap-monto").textContent = formatMoney(monto, moneda);
-  document.getElementById("cap-cuota").textContent = formatMoney(cuotaDisponible, moneda);
-  document.getElementById("cap-actual").textContent = `${actualPct.toFixed(1)} % del ingreso`;
+  set("cap-min-label", `Con ${minimo} %`);
+  set("cap-max-label", `Con ${maximo} %`);
+  set("cap-monto-min", formatMoney(montoDesdeCuota(cuotaMin, tasa, plazo), moneda));
+  set("cap-monto-max", formatMoney(montoDesdeCuota(cuotaMax, tasa, plazo), moneda));
+  set("cap-cargas", formatMoney(cargas, moneda));
+  set("cap-neto", formatMoney(neto, moneda));
+  set("cap-cuota", minimo === maximo
+    ? formatMoney(cuotaMax, moneda)
+    : `${formatMoney(cuotaMin, moneda)} – ${formatMoney(cuotaMax, moneda)}`);
+  set("cap-actual", `${actualPct.toLocaleString("es-CR", { maximumFractionDigits: 1 })} % del ingreso neto`);
+  set("cap-meter-max", `${maximo} %`);
 
-  meter.style.width = `${Math.min(100, (actualPct / limite) * 100)}%`;
-  meter.classList.toggle("warn", actualPct >= limite * 0.8);
+  meter.style.width = `${Math.min(100, (actualPct / maximo) * 100)}%`;
+  meter.classList.toggle("warn", actualPct >= minimo);
+  mark.style.left = `${(minimo / maximo) * 100}%`;
 
-  if (cuotaDisponible === 0) {
-    mensaje.textContent = "Sus deudas actuales ya alcanzan el límite. Una reestructuración podría liberar capacidad de pago.";
+  if (cuotaMax === 0) {
+    mensaje.textContent = `Sus deudas actuales ya alcanzan o superan el ${maximo} % de su ingreso neto. Una reestructuración podría liberar capacidad de pago.`;
     mensaje.className = "tool-message warn";
-  } else if (actualPct >= limite * 0.8) {
-    mensaje.textContent = "Su margen es reducido. Conviene revisar sus deudas antes de solicitar un nuevo crédito.";
+  } else if (actualPct >= minimo) {
+    mensaje.textContent = `Su endeudamiento ya está dentro del rango de ${minimo} % a ${maximo} %. Algunas entidades podrían no aprobar más crédito; conviene revisar sus deudas primero.`;
     mensaje.className = "tool-message warn";
   } else {
     mensaje.textContent = "Tiene margen para un nuevo crédito. Le ayudamos a conseguir las mejores condiciones.";
