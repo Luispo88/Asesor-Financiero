@@ -288,6 +288,10 @@
               <input type="number" name="cargas" min="0" max="100" step="0.01" value="10.83" required>
               <small class="field-hint">CCSS: SEM 5,50 % + IVM 4,33 % + Banco Popular 1,00 %</small>
             </label>
+            <div id="cap-renta-field" class="field-group">
+              <label class="check"><input type="checkbox" name="renta" checked> Rebajar impuesto sobre la renta (impuesto al salario)</label>
+              <small class="field-hint" id="cap-renta-hint"></small>
+            </div>
             <label>Cuotas de deudas actuales (mensual)
               <input type="number" name="deudas" min="0" step="1000" value="150000" required>
             </label>
@@ -316,6 +320,7 @@
             </div>
             <dl class="result-list">
               <div id="cap-cargas-row"><dt>Cargas sociales rebajadas</dt><dd id="cap-cargas">—</dd></div>
+              <div id="cap-renta-row"><dt>Impuesto sobre la renta</dt><dd id="cap-renta">—</dd></div>
               <div><dt>Ingreso neto considerado</dt><dd id="cap-neto">—</dd></div>
               <div><dt>Cuota disponible para el nuevo crédito</dt><dd id="cap-cuota">—</dd></div>
               <div><dt>Endeudamiento actual</dt><dd id="cap-actual">—</dd></div>
@@ -323,7 +328,7 @@
             <div class="meter" aria-hidden="true"><span id="cap-meter"></span><i id="cap-meter-mark"></i></div>
             <div class="meter-legend" aria-hidden="true"><span>0 %</span><span id="cap-meter-max">60 %</span></div>
             <p id="cap-mensaje" class="tool-message"></p>
-            <p class="note">Referencia orientativa. Para asalariados se rebajan las cargas sociales del trabajador; no se incluye el impuesto sobre la renta ni otras deducciones. Cada entidad aplica sus propias políticas de capacidad de pago, análisis de estrés de tasa y tipo de cambio, e historial crediticio.</p>
+            <p class="note">Referencia orientativa. Para asalariados se rebajan las cargas sociales del trabajador y, si se marca, el impuesto sobre la renta calculado sobre el salario bruto, sin créditos fiscales por hijos o cónyuge ni otras deducciones (embargos, pensiones alimentarias, ahorros). Cada entidad aplica sus propias políticas de capacidad de pago, análisis de estrés de tasa y tipo de cambio, e historial crediticio.</p>
           </div>
         </div>
 

@@ -94,13 +94,52 @@ if (formCuota) {
 
 // --- Capacidad de endeudamiento ---
 // Para asalariados, el ingreso se toma bruto y se rebajan las cargas sociales del trabajador
-// (CCSS: SEM 5,50 % + IVM 4,33 % + Banco Popular 1,00 %), igual que el salario líquido que analiza el banco.
+// (CCSS: SEM 5,50 % + IVM 4,33 % + Banco Popular 1,00 %) y el impuesto al salario,
+// igual que el salario líquido que analiza el banco.
+
+// Tramos mensuales del impuesto sobre la renta al salario, en colones. Hacienda los
+// actualiza cada año por decreto: al cambiar, edite solo esta tabla.
+const RENTA_SALARIO = {
+  periodo: "2025",
+  tramos: [
+    { hasta: 918000, tasa: 0 },
+    { hasta: 1347000, tasa: 0.10 },
+    { hasta: 2364000, tasa: 0.15 },
+    { hasta: 4727000, tasa: 0.20 },
+    { hasta: Infinity, tasa: 0.25 },
+  ],
+};
+
+// Impuesto progresivo: cada tramo paga su tasa solo sobre la parte del salario que cae en él.
+function impuestoSalario(bruto) {
+  let impuesto = 0;
+  let desde = 0;
+  for (const { hasta, tasa } of RENTA_SALARIO.tramos) {
+    if (bruto <= desde) break;
+    impuesto += (Math.min(bruto, hasta) - desde) * tasa;
+    desde = hasta;
+  }
+  return impuesto;
+}
+
+function describirTramos() {
+  const f = (n) => formatters.CRC.format(n);
+  const t = RENTA_SALARIO.tramos;
+  const partes = [`exento hasta ${f(t[0].hasta)}`];
+  for (let i = 1; i < t.length; i++) {
+    const pct = `${Math.round(t[i].tasa * 100)} %`;
+    partes.push(Number.isFinite(t[i].hasta) ? `${pct} hasta ${f(t[i].hasta)}` : `${pct} sobre el exceso`);
+  }
+  return `Tramos mensuales ${RENTA_SALARIO.periodo}: ${partes.join("; ")}.`;
+}
 const formCap = document.getElementById("form-capacidad");
 function calcularCapacidad() {
   const moneda = formCap.elements.moneda.value;
   const asalariado = formCap.elements.tipo.value === "asalariado";
   const ingreso = readNumber(formCap, "ingreso");
   const cargasPct = asalariado ? readNumber(formCap, "cargas") : 0;
+  // Los tramos están en colones; para un salario en dólares no se aplica el impuesto.
+  const conRenta = asalariado && moneda === "CRC" && formCap.elements.renta.checked;
   const deudas = readNumber(formCap, "deudas");
   const limiteA = readNumber(formCap, "limiteMin");
   const limiteB = readNumber(formCap, "limiteMax");
@@ -114,11 +153,16 @@ function calcularCapacidad() {
   document.getElementById("cap-ingreso-label").textContent = asalariado ? "Salario bruto mensual" : "Ingreso neto mensual";
   document.getElementById("cap-cargas-field").hidden = !asalariado;
   document.getElementById("cap-cargas-row").hidden = !asalariado;
+  document.getElementById("cap-renta-field").hidden = !asalariado;
+  document.getElementById("cap-renta-row").hidden = !asalariado;
+  document.getElementById("cap-renta-hint").textContent = moneda === "CRC"
+    ? describirTramos()
+    : "Los tramos del impuesto están en colones: con un salario en dólares no se aplica en este cálculo.";
 
   const valido = ingreso > 0 && cargasPct >= 0 && cargasPct < 100 && deudas >= 0 &&
     limiteA > 0 && limiteB > 0 && tasa >= 0 && plazo >= 1;
   if (!valido) {
-    ["cap-monto-min", "cap-monto-max", "cap-cargas", "cap-neto", "cap-cuota", "cap-actual"].forEach((id) => set(id, "—"));
+    ["cap-monto-min", "cap-monto-max", "cap-cargas", "cap-renta", "cap-neto", "cap-cuota", "cap-actual"].forEach((id) => set(id, "—"));
     mensaje.textContent = "Complete los datos para calcular.";
     mensaje.className = "tool-message";
     meter.style.width = "0";
@@ -128,7 +172,8 @@ function calcularCapacidad() {
   const minimo = Math.min(limiteA, limiteB);
   const maximo = Math.max(limiteA, limiteB);
   const cargas = ingreso * (cargasPct / 100);
-  const neto = ingreso - cargas;
+  const renta = conRenta ? impuestoSalario(ingreso) : 0;
+  const neto = ingreso - cargas - renta;
   const actualPct = (deudas / neto) * 100;
   const cuotaMin = Math.max(0, neto * (minimo / 100) - deudas);
   const cuotaMax = Math.max(0, neto * (maximo / 100) - deudas);
@@ -138,6 +183,7 @@ function calcularCapacidad() {
   set("cap-monto-min", formatMoney(montoDesdeCuota(cuotaMin, tasa, plazo), moneda));
   set("cap-monto-max", formatMoney(montoDesdeCuota(cuotaMax, tasa, plazo), moneda));
   set("cap-cargas", formatMoney(cargas, moneda));
+  set("cap-renta", asalariado && !conRenta ? "No aplicado" : formatMoney(renta, moneda));
   set("cap-neto", formatMoney(neto, moneda));
   set("cap-cuota", minimo === maximo
     ? formatMoney(cuotaMax, moneda)

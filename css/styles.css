@@ -253,7 +253,8 @@ label.check input { width: 20px; height: 20px; margin-top: 1px; flex: 0 0 auto; 
 }
 .field-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: end; }
 .field-hint { font-size: 12px; color: var(--muted); }
-label[hidden], .result-list div[hidden] { display: none; }
+.field-group { display: grid; gap: 6px; }
+label[hidden], .field-group[hidden], .result-list div[hidden] { display: none; }
 .tool-message { margin: 16px 0; font-size: 15px; font-weight: 500; }
 .tool-message.ok { color: var(--green); }
 .tool-message.warn { color: var(--amber); }
