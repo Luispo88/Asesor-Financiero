@@ -120,11 +120,88 @@
           <h3>Diagnóstico gratuito</h3>
           <p>Una conversación de 30 minutos para entender su caso, sin compromiso.</p>
           <a href="https://wa.me/50670123241" class="btn btn-block" data-whatsapp-link data-mensaje="Hola Luis, me interesa el servicio de CFO externo para mi empresa.">Escribirme por WhatsApp</a>
+          <a href="#registro" class="btn btn-outline btn-block aside-second">Registrar mi pyme</a>
           <ul>
             <li>+506 7012-3241</li>
             <li><a href="mailto:luis1988salas@hotmail.com" data-email-link>luis1988salas@hotmail.com</a></li>
           </ul>
         </aside>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="registro">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow eyebrow-accent">Registro de pymes interesadas</p>
+          <h2 class="section-title">Dé el siguiente paso.</h2>
+          <p class="section-sub">Si le interesa este servicio, regístrese. Más adelante le pediré algunos datos financieros de su empresa para preparar un acompañamiento a su medida, y tendrá acceso a la <strong>Introducción al CFO</strong>.</p>
+        </div>
+
+        <div class="cards cards-4 reveal">
+          <div class="card"><span class="card-tag">Módulo 1</span><h3>El rol del CFO en la pyme</h3><p>Qué hace un gerente financiero y cómo ayuda a tomar mejores decisiones.</p></div>
+          <div class="card"><span class="card-tag">Módulo 2</span><h3>Revisión y control de estados financieros</h3><p>Cómo leer el balance y el estado de resultados, y qué indicadores vigilar.</p></div>
+          <div class="card"><span class="card-tag">Módulo 3</span><h3>Flujo de caja y presupuesto</h3><p>Anticipar faltantes de liquidez y planificar ingresos y gastos.</p></div>
+          <div class="card"><span class="card-tag">Módulo 4</span><h3>Planificación para la sostenibilidad</h3><p>Metas, financiamiento y crecimiento ordenado a mediano plazo.</p></div>
+        </div>
+        <p class="note center">El contenido detallado del programa se compartirá con las personas registradas.</p>
+
+        <form id="form-registro-cfo" class="register-form reveal">
+          <h3 class="full">Formulario de registro</h3>
+          <label>Nombre completo
+            <input type="text" name="nombre" required autocomplete="name">
+          </label>
+          <label>Nombre de la empresa
+            <input type="text" name="empresa" required autocomplete="organization">
+          </label>
+          <label>Teléfono / WhatsApp
+            <input type="tel" name="telefono" required autocomplete="tel">
+          </label>
+          <label>Correo electrónico
+            <input type="email" name="correo" required autocomplete="email">
+          </label>
+          <label>Actividad o sector
+            <input type="text" name="sector" placeholder="Ej.: comercio, servicios, manufactura" required>
+          </label>
+          <label>Tamaño de la empresa
+            <select name="tamano">
+              <option>Micro (1 a 5 colaboradores)</option>
+              <option>Pequeña (6 a 30 colaboradores)</option>
+              <option>Mediana (31 a 100 colaboradores)</option>
+              <option>No estoy seguro</option>
+            </select>
+          </label>
+          <label>Años de operación
+            <select name="anos">
+              <option>Menos de 1 año</option>
+              <option>1 a 3 años</option>
+              <option>3 a 10 años</option>
+              <option>Más de 10 años</option>
+            </select>
+          </label>
+          <label>¿Cómo lleva su contabilidad?
+            <select name="contabilidad">
+              <option>Con un contador (estados financieros formales)</option>
+              <option>Registros básicos propios (Excel, cuaderno)</option>
+              <option>Todavía no llevo registros</option>
+            </select>
+          </label>
+          <fieldset class="full">
+            <legend>Temas que más le interesan</legend>
+            <div class="check-grid">
+              <label class="check"><input type="checkbox" name="temas" value="El rol del CFO en la pyme" checked> El rol del CFO en la pyme</label>
+              <label class="check"><input type="checkbox" name="temas" value="Revisión y control de estados financieros" checked> Revisión y control de estados financieros</label>
+              <label class="check"><input type="checkbox" name="temas" value="Flujo de caja y presupuesto"> Flujo de caja y presupuesto</label>
+              <label class="check"><input type="checkbox" name="temas" value="Planificación para la sostenibilidad"> Planificación para la sostenibilidad</label>
+            </div>
+          </fieldset>
+          <label class="full">Comentarios (opcional)
+            <textarea name="comentarios" rows="3" placeholder="Cuénteme brevemente qué necesita su empresa"></textarea>
+          </label>
+          <label class="check full"><input type="checkbox" name="consentimiento" required> Acepto que mis datos se guarden en el registro de pymes interesadas y que se me contacte para solicitar información financiera de mi empresa, conforme a la Ley 8968 de Protección de Datos Personales.</label>
+          <button type="submit" class="btn full">Registrarme por WhatsApp</button>
+          <p id="registro-mensaje" class="tool-message full" role="status"></p>
+          <p class="note full">No envíe estados financieros por este medio. Cuando corresponda, le indicaré cómo compartirlos de forma segura.</p>
+        </form>
       </div>
     </section>
 
