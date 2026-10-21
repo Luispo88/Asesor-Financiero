@@ -17,6 +17,7 @@ Diseño limpio y tipográfico: navegación translúcida, bloques de pantalla com
 
 - **Páginas de servicios** (`servicios/`): capacidad de crédito, consolidación de deudas, crédito hipotecario, financiamiento para pymes, condición PYME ante el MEIC y CFO externo. Cada una tiene un botón de WhatsApp con un mensaje ya escrito para ese servicio.
 - **Cuentas de clientes** (`cuenta/` y `clientes/`): registro con correo y contraseña, inicio de sesión y recuperación de contraseña. Con la sesión iniciada se entra al **Área de clientes**, con la introducción al funcionamiento del CFO externo, la revisión de la información financiera, una calculadora de indicadores y los próximos pasos.
+- **Plan de negocios** (`clientes/plan.html`): basado en la plantilla de plan de negocio en Excel. 14 secciones: previsión de ventas a 3 años (5 productos, unidades por mes, costo y precio, con gráficos), plan financiero, balance de situación con razones financieras, flujo de caja, estado de resultados, visión general, problemas y soluciones, oferta, calendario y métricas, resumen ejecutivo, mercadeo y ventas, mercado objetivo, FODA y competencia. Los cálculos son automáticos, se guarda solo en la cuenta del cliente (colección `planes`), se puede imprimir o guardar en PDF, y el asesor lo abre en solo lectura desde el panel.
 - **Panel del asesor** (`panel/`): solo para la cuenta del asesor con correo verificado. Lista de clientes registrados con búsqueda, filtro por estado, estadísticas, estado y notas privadas de seguimiento, contacto directo por WhatsApp o correo y exportación a Excel.
 - **Blog** (`blog/`): tres artículos iniciales.
   - ¿Por qué el banco rechazó su crédito?
@@ -34,6 +35,7 @@ js/main.js        Calculadoras, menú móvil, pestañas y contacto por WhatsApp
 js/auth.js        Registro, inicio de sesión y acceso al Área de clientes (Firebase)
 js/firebase-config.js  Datos del proyecto de Firebase (se completan al configurarlo)
 js/indicadores.js Indicadores financieros del Área de clientes
+js/plan.js        Plan de negocios: secciones, cálculos, gráficos y guardado
 cuenta/           Página de acceso: iniciar sesión y crear cuenta
 clientes/         Área de clientes (requiere sesión)
 panel/            Panel del asesor (solo la cuenta del asesor)

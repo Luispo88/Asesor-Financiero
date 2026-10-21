@@ -4,6 +4,7 @@ rules_version = '2';
 // - Cada cliente solo puede leer y escribir su propio perfil (usuarios/{uid}).
 // - El asesor (correo verificado) puede leer todos los perfiles desde el Panel del asesor.
 // - El seguimiento (estado y notas de cada cliente) solo lo ve y edita el asesor.
+// - El plan de negocios lo edita cada cliente; el asesor puede leerlo.
 service cloud.firestore {
   match /databases/{database}/documents {
     function esAsesor() {
@@ -13,6 +14,13 @@ service cloud.firestore {
     }
 
     match /usuarios/{uid} {
+      allow read: if (request.auth != null && request.auth.uid == uid) || esAsesor();
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // Plan de negocios de cada cliente: lo edita el cliente; el asesor solo lo lee.
+    match /planes/{uid} {
       allow read: if (request.auth != null && request.auth.uid == uid) || esAsesor();
       allow create, update: if request.auth != null && request.auth.uid == uid;
       allow delete: if false;

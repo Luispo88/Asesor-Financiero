@@ -42,7 +42,7 @@ if (firebaseConfigurado) {
   document.querySelectorAll("#form-ingresar, #form-registro").forEach((form) => {
     form.querySelectorAll("input, button").forEach((el) => (el.disabled = true));
   });
-  ["area-cargando", "panel-estado"].forEach((id) => {
+  ["area-cargando", "panel-estado", "plan-estado"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.hidden = true;
   });
@@ -62,6 +62,10 @@ async function iniciar() {
   if (document.getElementById("form-ingresar")) paginaCuenta(sesion, auth, db, fs);
   if (document.getElementById("area-contenido")) paginaClientes(sesion, auth, db, fs);
   if (document.getElementById("panel-contenido")) paginaPanel(sesion, auth, db, fs);
+  if (document.getElementById("plan-app")) {
+    const { iniciarPlan } = await import("./plan.js");
+    iniciarPlan({ sesion, auth, db, fs, esAsesor });
+  }
 }
 
 function paginaCuenta(sesion, auth, db, fs) {
@@ -287,7 +291,9 @@ function paginaPanel(sesion, auth, db, fs) {
     };
 
     celda(c.creado ? fechaCorta.format(c.creado) : "—").className = "panel-fecha";
-    celda(el("strong", c.nombre || "Sin nombre"), document.createElement("br"), el("span", c.empresa, "muted-small"));
+    const verPlan = el("a", "Ver plan de negocios", "panel-plan");
+    verPlan.href = `../clientes/plan.html?cliente=${encodeURIComponent(c.uid)}`;
+    celda(el("strong", c.nombre || "Sin nombre"), document.createElement("br"), el("span", c.empresa, "muted-small"), document.createElement("br"), verPlan);
     celda(c.sector || "—");
 
     const contacto = [];
