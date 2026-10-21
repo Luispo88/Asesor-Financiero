@@ -13,3 +13,7 @@ export const firebaseConfig = {
 };
 
 export const firebaseConfigurado = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+
+// Correos de las cuentas que pueden entrar al Panel del asesor. Deben coincidir con
+// la función esAsesor() de firestore.rules, que es la que realmente protege los datos.
+export const CORREOS_ASESOR = ["luis1988salas@hotmail.com"];

@@ -24,6 +24,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-h) + 12px); -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
@@ -355,6 +356,33 @@ details p { color: var(--muted); padding: 0 0 22px; margin: 0; }
 .ind-help { margin: 40px auto 0; font-size: 17px; }
 @media (max-width: 600px) {
   .register-cta, .auth-card { padding: 24px; }
+}
+
+/* ---------- Panel del asesor ---------- */
+.container-wide { max-width: 1240px; }
+.member-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.panel-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 32px 0; }
+.panel-stat { background: var(--bg-alt); border-radius: var(--radius); padding: 20px 22px; }
+.panel-stat strong { display: block; font-family: var(--font-display); font-size: 36px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.panel-stat span { font-size: 14px; color: var(--muted); }
+.panel-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; margin-bottom: 16px; }
+.panel-table-wrap { border: 1px solid #e8e8ed; border-radius: var(--radius); }
+.panel-table { width: 100%; min-width: 880px; border-collapse: collapse; font-size: 15px; }
+.panel-table th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--bg-alt); padding: 12px; }
+.panel-table td { padding: 12px; border-top: 1px solid #e8e8ed; vertical-align: top; }
+.panel-table .panel-fecha { white-space: nowrap; color: var(--muted); font-size: 14px; }
+.panel-table select { min-width: 150px; padding: 8px 10px; font-size: 14px; }
+.panel-table textarea { min-width: 200px; padding: 8px 10px; font-size: 14px; resize: vertical; }
+.panel-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--text); color: #fff; padding: 10px 18px; border-radius: 980px; font-size: 14px;
+  transition: opacity .25s ease, transform .25s ease; z-index: 200;
+}
+.panel-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+.panel-toast.warn { background: var(--amber); }
+@media (max-width: 833px) {
+  .panel-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .panel-toolbar { grid-template-columns: 1fr; }
 }
 
 /* ---------- Páginas internas ---------- */

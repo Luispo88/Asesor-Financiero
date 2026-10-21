@@ -1,9 +1,12 @@
-// Cuentas de clientes: registro, inicio de sesión y acceso al Área de clientes (Firebase).
-import { firebaseConfig, firebaseConfigurado } from "./firebase-config.js";
+// Cuentas de clientes: registro, inicio de sesión, Área de clientes y Panel del asesor (Firebase).
+import { firebaseConfig, firebaseConfigurado, CORREOS_ASESOR } from "./firebase-config.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
 const PAGINA_CLIENTES = "../clientes/index.html";
 const PAGINA_CUENTA = "../cuenta/index.html";
+const PAGINA_PANEL = "../panel/index.html";
+
+const esAsesor = (usuario) => CORREOS_ASESOR.includes((usuario?.email || "").toLowerCase());
 
 const ERRORES = {
   "auth/email-already-in-use": "Ya existe una cuenta con ese correo. Inicie sesión o recupere su contraseña.",
@@ -39,8 +42,10 @@ if (firebaseConfigurado) {
   document.querySelectorAll("#form-ingresar, #form-registro").forEach((form) => {
     form.querySelectorAll("input, button").forEach((el) => (el.disabled = true));
   });
-  const cargando = document.getElementById("area-cargando");
-  if (cargando) cargando.hidden = true;
+  ["area-cargando", "panel-estado"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  });
 }
 
 async function iniciar() {
@@ -56,12 +61,13 @@ async function iniciar() {
 
   if (document.getElementById("form-ingresar")) paginaCuenta(sesion, auth, db, fs);
   if (document.getElementById("area-contenido")) paginaClientes(sesion, auth, db, fs);
+  if (document.getElementById("panel-contenido")) paginaPanel(sesion, auth, db, fs);
 }
 
 function paginaCuenta(sesion, auth, db, fs) {
   let registrando = false;
   auth.onAuthStateChanged(sesion, (usuario) => {
-    if (usuario && !registrando) location.replace(PAGINA_CLIENTES);
+    if (usuario && !registrando) location.replace(esAsesor(usuario) ? PAGINA_PANEL : PAGINA_CLIENTES);
   });
 
   const ingresar = document.getElementById("form-ingresar");
@@ -141,10 +147,225 @@ function paginaClientes(sesion, auth, db, fs) {
     const nombre = (perfil.nombre || usuario.displayName || "cliente").split(" ")[0];
     document.querySelectorAll("[data-usuario-nombre]").forEach((el) => (el.textContent = nombre));
     document.querySelectorAll("[data-usuario-empresa]").forEach((el) => (el.textContent = perfil.empresa || usuario.email));
+    document.querySelectorAll("[data-solo-asesor]").forEach((el) => (el.hidden = !esAsesor(usuario)));
     document.getElementById("area-espera").hidden = true;
     document.getElementById("area-contenido").hidden = false;
   });
 
+  document.getElementById("btn-salir").addEventListener("click", async () => {
+    await auth.signOut(sesion);
+    location.replace(PAGINA_CUENTA);
+  });
+}
+
+// --- Panel del asesor ---
+const ESTADOS = ["Nuevo", "Contactado", "En diagnóstico", "Cliente activo", "No interesado"];
+const fechaCorta = new Intl.DateTimeFormat("es-CR", { day: "numeric", month: "short", year: "numeric" });
+const normalizar = (t) => (t || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function paginaPanel(sesion, auth, db, fs) {
+  const estado = document.getElementById("panel-estado");
+  const verificar = document.getElementById("panel-verificar");
+  const filas = document.getElementById("panel-filas");
+  const buscar = document.getElementById("panel-buscar");
+  const filtro = document.getElementById("panel-filtro");
+  const guardado = document.getElementById("panel-guardado");
+  let clientes = [];
+
+  auth.onAuthStateChanged(sesion, (usuario) => {
+    if (!usuario) {
+      location.replace(PAGINA_CUENTA);
+      return;
+    }
+    if (!esAsesor(usuario)) {
+      estado.textContent = "Esta sección es solo para el asesor.";
+      return;
+    }
+    if (!usuario.emailVerified) {
+      estado.textContent = `Para proteger la información de sus clientes, confirme su correo ${usuario.email}. Revise su bandeja de entrada y la carpeta de correo no deseado.`;
+      verificar.hidden = false;
+      return;
+    }
+    cargar();
+  });
+
+  document.getElementById("btn-reenviar").addEventListener("click", async () => {
+    try {
+      await auth.sendEmailVerification(sesion.currentUser);
+      mostrar("Le enviamos un nuevo correo de verificación.", "ok");
+    } catch (err) {
+      mostrar(traducir(err), "warn");
+    }
+  });
+
+  document.getElementById("btn-ya-verifique").addEventListener("click", async () => {
+    await sesion.currentUser.reload();
+    if (!sesion.currentUser.emailVerified) {
+      mostrar("Su correo todavía no aparece como verificado. Abra el enlace del correo y vuelva a intentarlo.", "warn");
+      return;
+    }
+    await sesion.currentUser.getIdToken(true);
+    verificar.hidden = true;
+    mostrar("");
+    cargar();
+  });
+
+  async function cargar() {
+    estado.textContent = "Cargando clientes…";
+    try {
+      const [usuarios, seguimiento] = await Promise.all([
+        fs.getDocs(fs.collection(db, "usuarios")),
+        fs.getDocs(fs.collection(db, "seguimiento")),
+      ]);
+      const notas = {};
+      seguimiento.forEach((d) => (notas[d.id] = d.data()));
+      clientes = [];
+      usuarios.forEach((d) => {
+        const u = d.data();
+        if (CORREOS_ASESOR.includes((u.correo || "").toLowerCase())) return; // la cuenta del asesor no es un cliente
+        clientes.push({
+          uid: d.id,
+          nombre: u.nombre || "",
+          empresa: u.empresa || "",
+          telefono: u.telefono || "",
+          sector: u.sector || "",
+          correo: u.correo || "",
+          creado: u.creado?.toDate ? u.creado.toDate() : null,
+          estado: notas[d.id]?.estado || "Nuevo",
+          notas: notas[d.id]?.notas || "",
+        });
+      });
+      clientes.sort((a, b) => (b.creado || 0) - (a.creado || 0));
+    } catch (err) {
+      estado.textContent = err?.code === "permission-denied"
+        ? "Firestore rechazó la lectura. Publique las reglas actualizadas de firestore.rules en la consola de Firebase."
+        : "No se pudieron cargar los clientes. Recargue la página.";
+      return;
+    }
+    document.getElementById("panel-espera").hidden = true;
+    document.getElementById("panel-contenido").hidden = false;
+    pintarResumen();
+    pintarTabla();
+  }
+
+  function pintarResumen() {
+    const hace30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const set = (id, v) => (document.getElementById(id).textContent = v.toLocaleString("es-CR"));
+    set("stat-total", clientes.length);
+    set("stat-30", clientes.filter((c) => c.creado && c.creado.getTime() >= hace30).length);
+    set("stat-nuevos", clientes.filter((c) => c.estado === "Nuevo").length);
+    set("stat-activos", clientes.filter((c) => c.estado === "Cliente activo").length);
+  }
+
+  function pintarTabla() {
+    const texto = normalizar(buscar.value);
+    const estadoFiltro = filtro.value;
+    const visibles = clientes.filter((c) =>
+      (!estadoFiltro || c.estado === estadoFiltro) &&
+      (!texto || normalizar([c.nombre, c.empresa, c.correo, c.sector, c.telefono].join(" ")).includes(texto)));
+    filas.replaceChildren(...visibles.map(fila));
+    document.getElementById("panel-vacio").hidden = visibles.length > 0;
+    document.getElementById("panel-vacio").textContent = clientes.length
+      ? "Ningún cliente coincide con la búsqueda."
+      : "Aún no hay clientes registrados.";
+  }
+
+  // Los datos vienen de los clientes: se insertan siempre como texto, nunca como HTML.
+  function fila(c) {
+    const tr = document.createElement("tr");
+    const celda = (...hijos) => {
+      const td = document.createElement("td");
+      td.append(...hijos);
+      tr.append(td);
+      return td;
+    };
+    const el = (tag, texto, clase) => {
+      const e = document.createElement(tag);
+      if (texto) e.textContent = texto;
+      if (clase) e.className = clase;
+      return e;
+    };
+
+    celda(c.creado ? fechaCorta.format(c.creado) : "—").className = "panel-fecha";
+    celda(el("strong", c.nombre || "Sin nombre"), document.createElement("br"), el("span", c.empresa, "muted-small"));
+    celda(c.sector || "—");
+
+    const contacto = [];
+    const digitos = c.telefono.replace(/\D/g, "");
+    if (digitos) {
+      const wa = el("a", c.telefono);
+      wa.href = `https://wa.me/${digitos.length === 8 ? "506" + digitos : digitos}`;
+      wa.target = "_blank";
+      wa.rel = "noopener";
+      contacto.push(wa, document.createElement("br"));
+    }
+    if (c.correo) {
+      const mail = el("a", c.correo, "muted-small");
+      mail.href = `mailto:${c.correo}`;
+      contacto.push(mail);
+    }
+    celda(...contacto);
+
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", `Estado de ${c.nombre}`);
+    ESTADOS.forEach((e) => select.append(new Option(e, e, false, e === c.estado)));
+    select.addEventListener("change", () => guardar(c, { estado: select.value }));
+    celda(select);
+
+    const notas = document.createElement("textarea");
+    notas.rows = 2;
+    notas.value = c.notas;
+    notas.placeholder = "Notas privadas";
+    notas.setAttribute("aria-label", `Notas sobre ${c.nombre}`);
+    notas.addEventListener("change", () => guardar(c, { notas: notas.value }));
+    celda(notas);
+    return tr;
+  }
+
+  async function guardar(cliente, campos) {
+    try {
+      await fs.setDoc(fs.doc(db, "seguimiento", cliente.uid), { ...campos, actualizado: fs.serverTimestamp() }, { merge: true });
+      Object.assign(cliente, campos);
+      pintarResumen();
+      avisar("Guardado", "ok");
+    } catch {
+      avisar("No se pudo guardar. Revise su conexión.", "warn");
+    }
+  }
+
+  let temporizador;
+  function avisar(texto, tipo) {
+    guardado.textContent = texto;
+    guardado.className = `panel-toast visible ${tipo}`;
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => (guardado.className = "panel-toast"), 2200);
+  }
+
+  // Exporta a CSV con punto y coma, que Excel en español abre en columnas.
+  function exportar() {
+    // Un texto que empieza con =, +, - o @ se antepone con ' para que Excel no lo ejecute como fórmula.
+    const campo = (v) => {
+      let t = (v ?? "").toString();
+      if (/^[=+\-@]/.test(t)) t = "'" + t;
+      return `"${t.replace(/"/g, '""')}"`;
+    };
+    const encabezado = ["Fecha de registro", "Nombre", "Empresa", "Sector", "Teléfono", "Correo", "Estado", "Notas"];
+    const lineas = clientes.map((c) => [
+      c.creado ? c.creado.toLocaleDateString("es-CR") : "",
+      c.nombre, c.empresa, c.sector, c.telefono, c.correo, c.estado, c.notas,
+    ].map(campo).join(";"));
+    const csv = "\ufeff" + [encabezado.map(campo).join(";"), ...lineas].join("\r\n");
+    const enlace = document.createElement("a");
+    enlace.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    enlace.download = `clientes-${new Date().toISOString().slice(0, 10)}.csv`;
+    enlace.click();
+    URL.revokeObjectURL(enlace.href);
+  }
+
+  buscar.addEventListener("input", pintarTabla);
+  filtro.addEventListener("change", pintarTabla);
+  document.getElementById("btn-exportar").addEventListener("click", exportar);
+  document.getElementById("btn-actualizar").addEventListener("click", cargar);
   document.getElementById("btn-salir").addEventListener("click", async () => {
     await auth.signOut(sesion);
     location.replace(PAGINA_CUENTA);

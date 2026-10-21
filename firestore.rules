@@ -1,13 +1,25 @@
 rules_version = '2';
 
 // Reglas de seguridad de Firestore para las cuentas de clientes.
-// Cada cliente solo puede leer y escribir su propio perfil (usuarios/{uid}).
-// El asesor ve todos los registros desde la consola de Firebase.
+// - Cada cliente solo puede leer y escribir su propio perfil (usuarios/{uid}).
+// - El asesor (correo verificado) puede leer todos los perfiles desde el Panel del asesor.
+// - El seguimiento (estado y notas de cada cliente) solo lo ve y edita el asesor.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function esAsesor() {
+      return request.auth != null
+        && request.auth.token.email == 'luis1988salas@hotmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
     match /usuarios/{uid} {
-      allow read, create, update: if request.auth != null && request.auth.uid == uid;
+      allow read: if (request.auth != null && request.auth.uid == uid) || esAsesor();
+      allow create, update: if request.auth != null && request.auth.uid == uid;
       allow delete: if false;
+    }
+
+    match /seguimiento/{uid} {
+      allow read, write: if esAsesor();
     }
   }
 }

@@ -17,6 +17,7 @@ Diseño limpio y tipográfico: navegación translúcida, bloques de pantalla com
 
 - **Páginas de servicios** (`servicios/`): capacidad de crédito, consolidación de deudas, crédito hipotecario, financiamiento para pymes, condición PYME ante el MEIC y CFO externo. Cada una tiene un botón de WhatsApp con un mensaje ya escrito para ese servicio.
 - **Cuentas de clientes** (`cuenta/` y `clientes/`): registro con correo y contraseña, inicio de sesión y recuperación de contraseña. Con la sesión iniciada se entra al **Área de clientes**, con la introducción al funcionamiento del CFO externo, la revisión de la información financiera, una calculadora de indicadores y los próximos pasos.
+- **Panel del asesor** (`panel/`): solo para la cuenta del asesor con correo verificado. Lista de clientes registrados con búsqueda, filtro por estado, estadísticas, estado y notas privadas de seguimiento, contacto directo por WhatsApp o correo y exportación a Excel.
 - **Blog** (`blog/`): tres artículos iniciales.
   - ¿Por qué el banco rechazó su crédito?
   - Cómo obtener la condición PYME ante el MEIC, paso a paso
@@ -35,6 +36,7 @@ js/firebase-config.js  Datos del proyecto de Firebase (se completan al configura
 js/indicadores.js Indicadores financieros del Área de clientes
 cuenta/           Página de acceso: iniciar sesión y crear cuenta
 clientes/         Área de clientes (requiere sesión)
+panel/            Panel del asesor (solo la cuenta del asesor)
 firestore.rules   Reglas de seguridad de la base de datos de clientes
 .nojekyll         Indica a GitHub Pages que publique los archivos tal cual
 sitemap.xml       Lista de páginas para Google Search Console
@@ -59,7 +61,9 @@ Las cuentas usan Firebase Authentication y Firestore, de Google. El plan gratuit
 
 Mientras `js/firebase-config.js` esté vacío, las páginas de acceso muestran un aviso y el formulario queda deshabilitado.
 
-**Ver a las personas registradas:** en **Authentication → Users** (correos y fechas) y en **Firestore Database → usuarios** (nombre, empresa, teléfono y sector).
+**Ver a las personas registradas:** en el **Panel del asesor** (`panel/`), o en la consola de Firebase: **Authentication → Users** y **Firestore Database → usuarios**.
+
+**Panel del asesor:** solo entra la cuenta cuyo correo está en `CORREOS_ASESOR` (`js/firebase-config.js`) y en la función `esAsesor()` de `firestore.rules`, y únicamente con el correo verificado. Para cambiar o agregar un correo de asesor, actualice ambos lugares y vuelva a publicar las reglas en Firebase. El estado y las notas de cada cliente se guardan en la colección `seguimiento`, que los clientes no pueden leer.
 
 **Sobre la privacidad del contenido:** el inicio de sesión controla quién entra al Área de clientes, pero el texto de esa página está en el sitio público, de modo que alguien con conocimientos técnicos podría leerlo. Es adecuado para contenido educativo. Los datos de cada cliente (su perfil) sí quedan protegidos por las reglas de Firestore. Cuando los clientes compartan información financiera propia, debe guardarse en Firestore, nunca en las páginas.
 
