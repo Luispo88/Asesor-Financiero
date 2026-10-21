@@ -85,6 +85,7 @@
           <div class="panel-stat"><strong id="stat-30">0</strong><span>Últimos 30 días</span></div>
           <div class="panel-stat"><strong id="stat-nuevos">0</strong><span>Sin contactar</span></div>
           <div class="panel-stat"><strong id="stat-activos">0</strong><span>Clientes activos</span></div>
+          <div class="panel-stat"><strong id="stat-riesgo">0</strong><span>Salud financiera en riesgo</span></div>
         </div>
 
         <div class="panel-toolbar">
@@ -94,18 +95,25 @@
           <label>Estado
             <select id="panel-filtro"><option value="">Todos</option><option>Nuevo</option><option>Contactado</option><option>En diagnóstico</option><option>Cliente activo</option><option>No interesado</option></select>
           </label>
+          <label>Ordenar por
+            <select id="panel-orden">
+              <option value="registro">Registro más reciente</option>
+              <option value="puntaje">Menor salud primero</option>
+              <option value="actualizado">Plan más reciente</option>
+            </select>
+          </label>
         </div>
 
         <div class="table-wrap panel-table-wrap">
           <table class="panel-table">
             <thead>
-              <tr><th>Registro</th><th>Cliente</th><th>Sector</th><th>Contacto</th><th>Estado</th><th>Notas</th></tr>
+              <tr><th>Registro</th><th>Cliente</th><th>Sector</th><th>Salud financiera</th><th>Plan actualizado</th><th>Contacto</th><th>Estado</th><th>Notas</th></tr>
             </thead>
             <tbody id="panel-filas"></tbody>
           </table>
         </div>
         <p class="note center" id="panel-vacio" hidden></p>
-        <p class="note">El estado y las notas se guardan automáticamente al cambiarlos, y solo usted puede verlos. El teléfono abre WhatsApp y el correo abre su programa de correo.</p>
+        <p class="note">La salud financiera se calcula con el plan de negocios de cada cliente (puntaje de 0 a 100); abra «Ver plan de negocios» para el análisis completo. El estado y las notas se guardan automáticamente al cambiarlos, y solo usted puede verlos. El teléfono abre WhatsApp y el correo abre su programa de correo.</p>
       </div>
     </section>
     </div>

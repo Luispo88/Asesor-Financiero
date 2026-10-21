@@ -173,6 +173,8 @@ function paginaPanel(sesion, auth, db, fs) {
   const filas = document.getElementById("panel-filas");
   const buscar = document.getElementById("panel-buscar");
   const filtro = document.getElementById("panel-filtro");
+  const ordenar = document.getElementById("panel-orden");
+  const puntajeDe = (c) => c.salud?.analisis?.puntaje ?? null;
   const guardado = document.getElementById("panel-guardado");
   let clientes = [];
 
@@ -223,6 +225,14 @@ function paginaPanel(sesion, auth, db, fs) {
       ]);
       const notas = {};
       seguimiento.forEach((d) => (notas[d.id] = d.data()));
+      // Salud financiera: se analiza el plan de negocios de cada cliente con el mismo motor del plan.
+      const salud = {};
+      try {
+        const [{ diagnosticoDePlan }, planes] = await Promise.all([import("./plan.js"), fs.getDocs(fs.collection(db, "planes"))]);
+        planes.forEach((d) => (salud[d.id] = diagnosticoDePlan(d.data())));
+      } catch {
+        // Si no se pueden leer los planes, el panel funciona igual sin la columna de salud.
+      }
       clientes = [];
       usuarios.forEach((d) => {
         const u = d.data();
@@ -237,6 +247,7 @@ function paginaPanel(sesion, auth, db, fs) {
           creado: u.creado?.toDate ? u.creado.toDate() : null,
           estado: notas[d.id]?.estado || "Nuevo",
           notas: notas[d.id]?.notas || "",
+          salud: salud[d.id] || { tienePlan: false, analisis: null, actualizado: null },
         });
       });
       clientes.sort((a, b) => (b.creado || 0) - (a.creado || 0));
@@ -259,6 +270,7 @@ function paginaPanel(sesion, auth, db, fs) {
     set("stat-30", clientes.filter((c) => c.creado && c.creado.getTime() >= hace30).length);
     set("stat-nuevos", clientes.filter((c) => c.estado === "Nuevo").length);
     set("stat-activos", clientes.filter((c) => c.estado === "Cliente activo").length);
+    set("stat-riesgo", clientes.filter((c) => puntajeDe(c) != null && puntajeDe(c) < 35).length);
   }
 
   function pintarTabla() {
@@ -267,6 +279,11 @@ function paginaPanel(sesion, auth, db, fs) {
     const visibles = clientes.filter((c) =>
       (!estadoFiltro || c.estado === estadoFiltro) &&
       (!texto || normalizar([c.nombre, c.empresa, c.correo, c.sector, c.telefono].join(" ")).includes(texto)));
+    const orden = ordenar.value;
+    const pj = (c) => puntajeDe(c) ?? Infinity;
+    if (orden === "puntaje") visibles.sort((a, b) => pj(a) - pj(b));
+    else if (orden === "actualizado") visibles.sort((a, b) => (b.salud.actualizado || 0) - (a.salud.actualizado || 0));
+    else visibles.sort((a, b) => (b.creado || 0) - (a.creado || 0));
     filas.replaceChildren(...visibles.map(fila));
     document.getElementById("panel-vacio").hidden = visibles.length > 0;
     document.getElementById("panel-vacio").textContent = clientes.length
@@ -295,6 +312,20 @@ function paginaPanel(sesion, auth, db, fs) {
     verPlan.href = `../clientes/plan.html?cliente=${encodeURIComponent(c.uid)}`;
     celda(el("strong", c.nombre || "Sin nombre"), document.createElement("br"), el("span", c.empresa, "muted-small"), document.createElement("br"), verPlan);
     celda(c.sector || "—");
+
+    // Salud financiera según su plan de negocios.
+    const A = c.salud.analisis;
+    if (A && A.puntaje != null) {
+      const p = A.puntaje, clase = p >= 75 ? "sano" : p >= 35 ? "atencion" : "alerta";
+      const alertas = A.hallazgos.filter((x) => x.estado === "alerta");
+      const td = celda(
+        el("span", `${p}/100 · ${A.calificacion}`, `semaforo ${clase}`), document.createElement("br"),
+        el("span", alertas.length ? `${alertas.length} alerta${alertas.length > 1 ? "s" : ""}: ${alertas.slice(0, 2).map((x) => x.titulo.toLowerCase()).join("; ")}` : "Sin alertas", "muted-small"));
+      td.className = "panel-salud";
+    } else {
+      celda(el("span", c.salud.tienePlan ? "Plan con pocos datos" : "Sin plan", "muted-small")).className = "panel-salud";
+    }
+    celda(c.salud.actualizado ? fechaCorta.format(c.salud.actualizado) : "—").className = "panel-fecha";
 
     const contacto = [];
     const digitos = c.telefono.replace(/\D/g, "");
@@ -355,10 +386,13 @@ function paginaPanel(sesion, auth, db, fs) {
       if (/^[=+\-@]/.test(t)) t = "'" + t;
       return `"${t.replace(/"/g, '""')}"`;
     };
-    const encabezado = ["Fecha de registro", "Nombre", "Empresa", "Sector", "Teléfono", "Correo", "Estado", "Notas"];
+    const encabezado = ["Fecha de registro", "Nombre", "Empresa", "Sector", "Teléfono", "Correo", "Estado", "Notas", "Puntaje de salud financiera", "Calificación", "Alertas", "Plan actualizado"];
     const lineas = clientes.map((c) => [
       c.creado ? c.creado.toLocaleDateString("es-CR") : "",
       c.nombre, c.empresa, c.sector, c.telefono, c.correo, c.estado, c.notas,
+      puntajeDe(c) ?? "", c.salud.analisis?.calificacion || (c.salud.tienePlan ? "Pocos datos" : "Sin plan"),
+      c.salud.analisis ? c.salud.analisis.hallazgos.filter((x) => x.estado === "alerta").length : "",
+      c.salud.actualizado ? c.salud.actualizado.toLocaleDateString("es-CR") : "",
     ].map(campo).join(";"));
     const csv = "\ufeff" + [encabezado.map(campo).join(";"), ...lineas].join("\r\n");
     const enlace = document.createElement("a");
@@ -370,6 +404,7 @@ function paginaPanel(sesion, auth, db, fs) {
 
   buscar.addEventListener("input", pintarTabla);
   filtro.addEventListener("change", pintarTabla);
+  ordenar.addEventListener("change", pintarTabla);
   document.getElementById("btn-exportar").addEventListener("click", exportar);
   document.getElementById("btn-actualizar").addEventListener("click", cargar);
   document.getElementById("btn-salir").addEventListener("click", async () => {

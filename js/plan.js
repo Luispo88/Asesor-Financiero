@@ -950,6 +950,24 @@ function deserializar(doc) {
   return doc?.datos || {};
 }
 
+// Analiza un plan guardado (documento de planes/{uid}) sin dibujarlo. Lo usa el Panel del asesor.
+export function diagnosticoDePlan(doc) {
+  const anterior = datos;
+  datos = deserializar(doc);
+  const tienePlan = tieneDatos(datos);
+  let analisis = null;
+  try {
+    if (tienePlan) {
+      calcular();
+      analisis = calcular.analisis;
+    }
+  } finally {
+    datos = anterior;
+    calcular.anual = null;
+  }
+  return { tienePlan, analisis, actualizado: doc?.actualizado?.toDate ? doc.actualizado.toDate() : null };
+}
+
 export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
   const estadoCarga = document.getElementById("plan-estado");
   const guardadoEl = document.getElementById("plan-guardado");
