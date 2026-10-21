@@ -16,6 +16,7 @@ Diseño limpio y tipográfico: navegación translúcida, bloques de pantalla com
 - **Contacto**: un formulario que abre WhatsApp con el mensaje ya escrito (no necesita servidor).
 
 - **Páginas de servicios** (`servicios/`): capacidad de crédito, consolidación de deudas, crédito hipotecario, financiamiento para pymes, condición PYME ante el MEIC y CFO externo. Cada una tiene un botón de WhatsApp con un mensaje ya escrito para ese servicio.
+- **Cuentas de clientes** (`cuenta/` y `clientes/`): registro con correo y contraseña, inicio de sesión y recuperación de contraseña. Con la sesión iniciada se entra al **Área de clientes**, con la introducción al funcionamiento del CFO externo, la revisión de la información financiera, una calculadora de indicadores y los próximos pasos.
 - **Blog** (`blog/`): tres artículos iniciales.
   - ¿Por qué el banco rechazó su crédito?
   - Cómo obtener la condición PYME ante el MEIC, paso a paso
@@ -29,6 +30,12 @@ servicios/        Índice de servicios y una página por servicio
 blog/             Índice del blog y artículos
 css/styles.css    Estilos (diseño responsivo para escritorio y celular)
 js/main.js        Calculadoras, menú móvil, pestañas y contacto por WhatsApp
+js/auth.js        Registro, inicio de sesión y acceso al Área de clientes (Firebase)
+js/firebase-config.js  Datos del proyecto de Firebase (se completan al configurarlo)
+js/indicadores.js Indicadores financieros del Área de clientes
+cuenta/           Página de acceso: iniciar sesión y crear cuenta
+clientes/         Área de clientes (requiere sesión)
+firestore.rules   Reglas de seguridad de la base de datos de clientes
 .nojekyll         Indica a GitHub Pages que publique los archivos tal cual
 sitemap.xml       Lista de páginas para Google Search Console
 ```
@@ -39,6 +46,22 @@ sitemap.xml       Lista de páginas para Google Search Console
 - Correo: luis1988salas@hotmail.com
 
 Si cambian, actualice el objeto `CONTACTO` en `js/main.js` y los textos visibles en las páginas (busque `7012-3241` y `luis1988salas`).
+
+## Configurar las cuentas de clientes (Firebase)
+
+Las cuentas usan Firebase Authentication y Firestore, de Google. El plan gratuito (Spark) es suficiente para empezar.
+
+1. Entre a [console.firebase.google.com](https://console.firebase.google.com) con su cuenta de Google y pulse **Crear un proyecto** (por ejemplo, `asesor-financiero`). Puede desactivar Google Analytics.
+2. En **Authentication → Comenzar → Método de acceso**, habilite **Correo electrónico/contraseña**.
+3. En **Authentication → Configuración → Dominios autorizados**, agregue `luispo88.github.io`.
+4. En **Firestore Database → Crear base de datos**, elija modo de producción y una ubicación (por ejemplo, `us-central1`). En la pestaña **Reglas**, pegue el contenido de `firestore.rules` y pulse **Publicar**.
+5. En **Configuración del proyecto (ícono de engranaje) → Tus apps**, agregue una app **Web** (`</>`). Copie los valores de `firebaseConfig` en `js/firebase-config.js`.
+
+Mientras `js/firebase-config.js` esté vacío, las páginas de acceso muestran un aviso y el formulario queda deshabilitado.
+
+**Ver a las personas registradas:** en **Authentication → Users** (correos y fechas) y en **Firestore Database → usuarios** (nombre, empresa, teléfono y sector).
+
+**Sobre la privacidad del contenido:** el inicio de sesión controla quién entra al Área de clientes, pero el texto de esa página está en el sitio público, de modo que alguien con conocimientos técnicos podría leerlo. Es adecuado para contenido educativo. Los datos de cada cliente (su perfil) sí quedan protegidos por las reglas de Firestore. Cuando los clientes compartan información financiera propia, debe guardarse en Firestore, nunca en las páginas.
 
 ## Agregar un artículo al blog
 

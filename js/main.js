@@ -294,38 +294,6 @@ if (formContacto) {
   });
 }
 
-// --- Registro de pymes interesadas en el CFO externo ---
-const formRegistro = document.getElementById("form-registro-cfo");
-if (formRegistro) {
-  formRegistro.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const estado = document.getElementById("registro-mensaje");
-    if (!formRegistro.checkValidity()) {
-      formRegistro.reportValidity();
-      return;
-    }
-    const datos = new FormData(formRegistro);
-    const temas = datos.getAll("temas");
-    const d = Object.fromEntries(datos);
-    const texto = [
-      "Hola Luis, quiero registrar mi pyme para el servicio de CFO externo.",
-      `Nombre: ${d.nombre}`,
-      `Empresa: ${d.empresa}`,
-      `Teléfono: ${d.telefono}`,
-      `Correo: ${d.correo}`,
-      `Sector: ${d.sector}`,
-      `Tamaño: ${d.tamano}`,
-      `Años de operación: ${d.anos}`,
-      `Contabilidad: ${d.contabilidad}`,
-      `Temas de interés: ${temas.length ? temas.join(", ") : "Por definir"}`,
-      d.comentarios ? `Comentarios: ${d.comentarios}` : "",
-      "Acepto el tratamiento de mis datos conforme a la Ley 8968.",
-    ].filter(Boolean).join("\n");
-    window.open(whatsappUrl(texto), "_blank", "noopener");
-    estado.textContent = "Se abrió WhatsApp con su registro listo. Envíe el mensaje para completarlo.";
-  });
-}
-
 // Enlaces que abren una calculadora concreta.
 document.querySelectorAll("[data-open-tab]").forEach((a) => {
   a.addEventListener("click", () => {

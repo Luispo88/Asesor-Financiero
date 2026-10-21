@@ -323,20 +323,38 @@ details p { color: var(--muted); padding: 0 0 22px; margin: 0; }
 .contact-form .full { grid-column: 1 / -1; }
 .contact-form .tool-message { margin: 0; }
 
-/* ---------- Registro CFO ---------- */
-.register-form {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px;
-  background: var(--bg); border-radius: var(--radius-lg); padding: 40px; margin-top: 48px;
-  box-shadow: 2px 4px 12px rgba(0, 0, 0, .06);
-}
-.register-form h3 { font-size: 24px; margin: 0 0 4px; }
-.register-form .full { grid-column: 1 / -1; }
-.register-form .tool-message, .register-form .note { margin: 0; }
-.check-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 20px; }
+/* ---------- Registro y cuentas de clientes ---------- */
+.register-cta { background: var(--bg); border-radius: var(--radius-lg); padding: 40px; margin-top: 48px; text-align: center; box-shadow: 2px 4px 12px rgba(0, 0, 0, .06); }
+.register-cta h3 { font-size: 28px; }
+.register-cta p { color: var(--muted); max-width: 620px; margin: 0 auto; }
 .aside-second { margin-top: 10px; }
+
+.auth-card { background: var(--bg-alt); border-radius: var(--radius-lg); padding: 40px; max-width: 620px; margin: 0 auto; }
+.auth-form { display: grid; gap: 16px; }
+.auth-form button:disabled, .auth-form input:disabled { opacity: .5; cursor: not-allowed; }
+.auth-card .tool-message { margin: 16px 0 0; text-align: center; }
+.auth-pendiente { margin: 0 0 24px; background: #fff4e5; }
+.link-button { background: none; border: 0; padding: 4px; font: inherit; font-size: 14px; color: var(--link); cursor: pointer; justify-self: center; }
+.link-button:hover { text-decoration: underline; }
+
+.member-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.member-hello { margin-bottom: 4px; }
+.muted-text { color: var(--muted); margin: 0; }
+.member-nav { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
+.member-nav a { background: var(--bg-alt); color: var(--text); border-radius: 980px; padding: 8px 16px; font-size: 14px; }
+.member-nav a:hover { background: #e8e8ed; text-decoration: none; }
+.muted-small { font-size: 12px; color: var(--muted); }
+.ind-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.ind-table th, .ind-table td { text-align: left; padding: 10px 6px; border-bottom: 1px solid #e8e8ed; vertical-align: top; }
+.ind-table th { font-size: 12px; color: var(--muted); font-weight: 600; }
+.ind-table .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.semaforo { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 980px; white-space: nowrap; }
+.semaforo.sano { background: #e8f5ee; color: var(--green); }
+.semaforo.atencion { background: #fff4e5; color: var(--amber); }
+.semaforo.alerta { background: #fdecec; color: #c4281c; }
+.ind-help { margin: 40px auto 0; font-size: 17px; }
 @media (max-width: 600px) {
-  .register-form, .check-grid { grid-template-columns: 1fr; }
-  .register-form { padding: 24px; }
+  .register-cta, .auth-card { padding: 24px; }
 }
 
 /* ---------- Páginas internas ---------- */

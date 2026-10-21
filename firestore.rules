@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para las cuentas de clientes.
+// Cada cliente solo puede leer y escribir su propio perfil (usuarios/{uid}).
+// El asesor ve todos los registros desde la consola de Firebase.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{uid} {
+      allow read, create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
+    }
+  }
+}
