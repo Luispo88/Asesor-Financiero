@@ -53,7 +53,7 @@ Las cuentas usan Firebase Authentication y Firestore, de Google. El plan gratuit
 
 1. Entre a [console.firebase.google.com](https://console.firebase.google.com) con su cuenta de Google y pulse **Crear un proyecto** (por ejemplo, `asesor-financiero`). Puede desactivar Google Analytics.
 2. En **Authentication → Comenzar → Método de acceso**, habilite **Correo electrónico/contraseña**.
-3. En **Authentication → Configuración → Dominios autorizados**, agregue `luispo88.github.io`.
+3. Dentro de **Authentication**, abra la pestaña superior **Configuración** (*Settings*); en el menú de la izquierda de esa pestaña elija **Dominios autorizados** (*Authorized domains*), pulse **Agregar dominio** y escriba `luispo88.github.io` (sin `https://` ni `/Asesor-Financiero`).
 4. En **Firestore Database → Crear base de datos**, elija modo de producción y una ubicación (por ejemplo, `us-central1`). En la pestaña **Reglas**, pegue el contenido de `firestore.rules` y pulse **Publicar**.
 5. En **Configuración del proyecto (ícono de engranaje) → Tus apps**, agregue una app **Web** (`</>`). Copie los valores de `firebaseConfig` en `js/firebase-config.js`.
 

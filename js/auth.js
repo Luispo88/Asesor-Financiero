@@ -15,6 +15,8 @@ const ERRORES = {
   "auth/too-many-requests": "Demasiados intentos. Espere unos minutos e intente de nuevo.",
   "auth/network-request-failed": "No hay conexión. Revise su internet e intente de nuevo.",
   "auth/user-disabled": "Esta cuenta está deshabilitada. Escríbame por WhatsApp.",
+  "auth/unauthorized-domain": "Este sitio aún no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).",
+  "auth/operation-not-allowed": "El acceso con correo y contraseña no está habilitado en Firebase (Authentication → Método de acceso).",
 };
 const traducir = (e) => ERRORES[e?.code] || "No se pudo completar la operación. Intente de nuevo.";
 
