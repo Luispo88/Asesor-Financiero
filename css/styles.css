@@ -479,6 +479,28 @@ details p { color: var(--muted); padding: 0 0 22px; margin: 0; }
 .chart-tip-row i { width: 10px; height: 10px; border-radius: 3px; }
 .chart-tip-row strong { text-align: right; font-variant-numeric: tabular-nums; }
 .panel-plan { font-size: 13px; }
+.plan-add {
+  justify-self: start; border: 1px dashed #b8c9e6; background: #f5f9ff; color: var(--link);
+  font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 980px; cursor: pointer;
+}
+.plan-add:hover { background: #e9f2ff; border-style: solid; }
+.plan-quitar {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
+  background: transparent; color: var(--muted); font-size: 18px; line-height: 1;
+}
+.plan-quitar:hover { background: #fdecec; color: #c4281c; }
+.plan-table .fila-agregar td { border-bottom: 0; padding-top: 8px; }
+.plan-table .fila-extra th { font-weight: 400; }
+.extra-nombre { display: flex; align-items: center; gap: 6px; }
+.extra-nombre input { flex: 1; min-width: 0; }
+.extra-nombre h4 { flex: 1; }
+.extra-par { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 26px; gap: 8px; align-items: center; }
+.extra-par input { padding: 8px 10px; font-size: 14px; }
+.producto-titulo { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 26px; }
+.col-quitar { width: 36px; text-align: center; }
+.plan-total-linea { text-align: right; font-weight: 600; margin: 8px 0 0; }
+.foda-fila { grid-template-columns: 22px minmax(0, 1fr) 120px 26px; }
+.apartado textarea { margin-top: 4px; }
 
 @media (max-width: 1068px) {
   .plan-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }

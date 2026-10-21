@@ -1,11 +1,14 @@
 // Plan de negocios del Área de clientes: entradas, cálculos y gráficos de las 14 secciones,
 // guardados en Firestore (planes/{uid}). El asesor puede abrir el plan de un cliente en solo lectura.
+// Todas las listas (productos, cuentas, filas, segmentos, apartados) admiten agregar elementos.
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-const N_PRODUCTOS = 5;
+const MIN_PRODUCTOS = 5;
 const ANOS = [0, 1, 2];
-// Paleta categórica validada (orden fijo; el color sigue al producto, no a su posición en el ranking).
-const COLORES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"];
+// Paleta categórica validada (orden fijo; el color sigue al producto, no a su posición).
+// Más allá de 8 productos, el resto se agrupa en "Otros" en el gráfico.
+const COLORES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+const COLOR_OTROS = "#8e8e93";
 
 // ---------------------------------------------------------------- Utilidades
 
@@ -23,6 +26,9 @@ function h(tag, props = {}, ...hijos) {
 }
 
 let datos = {};
+let SOLO_LECTURA = false;
+let alCambiarDatos = () => {};
+
 const leer = (ruta) => ruta.split(".").reduce((o, k) => (o == null ? undefined : o[k]), datos);
 const num = (ruta) => Number(leer(ruta)) || 0;
 function escribir(ruta, valor) {
@@ -34,6 +40,17 @@ function escribir(ruta, valor) {
   });
   o[ks.at(-1)] = valor;
 }
+// Devuelve la lista guardada en la ruta (creándola si no existe), con al menos `minimo` posiciones.
+function lista(ruta, minimo = 0) {
+  let a = leer(ruta);
+  if (!Array.isArray(a)) {
+    a = a && typeof a === "object" ? Object.values(a) : [];
+    escribir(ruta, a);
+  }
+  while (a.length < minimo) a.push(null);
+  return a;
+}
+const largo = (ruta, minimo) => Math.max(minimo, (Array.isArray(leer(ruta)) ? leer(ruta).length : 0));
 
 const moneda = () => (leer("general.moneda") === "USD" ? "USD" : "CRC");
 const fmtMoneda = (v) => new Intl.NumberFormat("es-CR", {
@@ -57,7 +74,14 @@ function etiquetaMes(ano, m) {
   return `${MESES[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 }
 const etiquetaAno = (y) => `Año ${y + 1} · ${inicio().ano + y}`;
-const nombreProducto = (p) => (leer(`ventas.productos.${p}`) || "").trim() || `Producto / Servicio ${p + 1}`;
+
+// Productos: tantos como el cliente haya agregado (mínimo 5).
+function nProductos() {
+  let n = largo("ventas.productos", MIN_PRODUCTOS);
+  ANOS.forEach((y) => ["unidades", "costo", "precio"].forEach((k) => (n = Math.max(n, largo(`ventas.anos.${y}.${k}`, 0)))));
+  return n;
+}
+const nombreProducto = (p) => (leer(`ventas.productos.${p}`) || "").trim() || `Producto ${p + 1}`;
 
 // Campos enlazados a una ruta de datos.
 const campoNum = (ruta, props = {}) => h("input", { type: "number", step: "any", inputmode: "decimal", "data-ruta": ruta, "data-tipo": "num", ...props });
@@ -65,12 +89,29 @@ const campoTexto = (ruta, props = {}) => h("input", { type: "text", "data-ruta":
 const campoArea = (ruta, props = {}) => h("textarea", { rows: 5, "data-ruta": ruta, ...props });
 const salida = (clave, clase = "num") => h("span", { "data-salida": clave, class: clase, text: "—" });
 
+// Botones para agregar y quitar elementos (ocultos en solo lectura).
+const botonAgregar = (texto, accion) => (SOLO_LECTURA ? null : h("button", { type: "button", class: "plan-add", onclick: accion, text: `+ ${texto}` }));
+const botonQuitar = (que, accion) => (SOLO_LECTURA ? null : h("button", { type: "button", class: "plan-quitar", title: `Quitar ${que}`, "aria-label": `Quitar ${que}`, onclick: accion, text: "×" }));
+function agregarA(ruta, minimo, nuevo, idSeccion) {
+  lista(ruta, minimo).push(nuevo);
+  cambioEstructura(idSeccion);
+}
+function quitarDe(ruta, i, idSeccion) {
+  const a = lista(ruta);
+  if (tieneDatos(a[i]) && !confirm("¿Quitar esta fila? Se borrarán los datos que tiene.")) return;
+  a.splice(i, 1);
+  cambioEstructura(idSeccion);
+}
+
 // ---------------------------------------------------------------- Secciones
 
 const SECCIONES = [];
 const seccion = (id, grupo, titulo, ayuda, raices, construir) => SECCIONES.push({ id, grupo, titulo, ayuda, raices, construir });
 
-// Fila de tabla anual: concepto + 3 años de entrada.
+const encabezadoAnual = (titulo = "Concepto") => h("thead", {}, h("tr", {}, h("th", { text: titulo }), ANOS.map((y) => h("th", { class: "num", "data-ano": y, text: etiquetaAno(y) }))));
+const filaGrupo = (texto) => h("tr", { class: "fila-grupo" }, h("th", { colspan: 4, text: texto }));
+const filaTotal = (clave, etiqueta, clase = "fila-total") => h("tr", { class: clase },
+  h("th", { scope: "row", text: etiqueta }), ANOS.map((y) => h("td", {}, salida(`${clave}.${y}`))));
 function filaAnual(base, clave, etiqueta, opciones = {}) {
   return h("tr", {},
     h("th", { scope: "row", text: etiqueta }),
@@ -78,29 +119,66 @@ function filaAnual(base, clave, etiqueta, opciones = {}) {
       ? salida(`${base}.${clave}.${y}`)
       : campoNum(`${base}.${clave}.${y}`, { "aria-label": `${etiqueta}, ${etiquetaAno(y)}` }))));
 }
-const filaTotal = (clave, etiqueta, clase = "fila-total") => h("tr", { class: clase },
-  h("th", { scope: "row", text: etiqueta }), ANOS.map((y) => h("td", {}, salida(`${clave}.${y}`))));
-const encabezadoAnual = (titulo = "Concepto") => h("thead", {}, h("tr", {}, h("th", { text: titulo }), ANOS.map((y) => h("th", { class: "num", "data-ano": y, text: etiquetaAno(y) }))));
-const filaGrupo = (texto) => h("tr", { class: "fila-grupo" }, h("th", { colspan: 4, text: texto }));
+// Cuentas que agrega el cliente dentro de un grupo: nombre + 3 años, con botón para quitarlas.
+function filasExtra(base, idSeccion, textoBoton) {
+  const n = largo(base, 0);
+  return [
+    ...Array.from({ length: n }, (_, i) => h("tr", { class: "fila-extra" },
+      h("th", { scope: "row" }, h("div", { class: "extra-nombre" },
+        campoTexto(`${base}.${i}.nombre`, { placeholder: "Nombre de la cuenta", "aria-label": "Nombre de la cuenta" }),
+        botonQuitar("cuenta", () => quitarDe(base, i, idSeccion)))),
+      ANOS.map((y) => h("td", {}, campoNum(`${base}.${i}.v.${y}`, { "aria-label": `Cuenta agregada ${i + 1}, ${etiquetaAno(y)}` }))))),
+    SOLO_LECTURA ? null : h("tr", { class: "fila-agregar" }, h("td", { colspan: 4 }, botonAgregar(textoBoton, () => agregarA(base, 0, { nombre: "", v: [null, null, null] }, idSeccion)))),
+  ];
+}
+const sumaExtras = (base, y) => {
+  const a = leer(base);
+  return Array.isArray(a) ? a.reduce((t, _, i) => t + num(`${base}.${i}.v.${y}`), 0) : 0;
+};
+
+// Tabla de filas libres (calendario, competidores, financiamiento) con agregar y quitar.
+function tablaFilas(base, columnas, minimo, idSeccion, textoBoton) {
+  const n = largo(base, minimo);
+  return h("div", { class: "table-wrap" }, h("table", { class: "plan-table plan-filas" },
+    h("thead", {}, h("tr", {}, columnas.map(([, t, tipo]) => h("th", { class: tipo === "num" ? "num" : null, text: t })), SOLO_LECTURA ? null : h("th", { class: "col-quitar" }))),
+    h("tbody", {}, Array.from({ length: n }, (_, i) => h("tr", {},
+      columnas.map(([k, t, tipo]) => h("td", {},
+        tipo === "fecha" ? h("input", { type: "date", "data-ruta": `${base}.${i}.${k}`, "aria-label": `${t} ${i + 1}` })
+          : tipo === "num" ? campoNum(`${base}.${i}.${k}`, { "aria-label": `${t} ${i + 1}` })
+            : campoTexto(`${base}.${i}.${k}`, { "aria-label": `${t} ${i + 1}` }))),
+      SOLO_LECTURA ? null : h("td", { class: "col-quitar" }, botonQuitar("fila", () => quitarDe(base, i, idSeccion)))))),
+    SOLO_LECTURA ? null : h("tfoot", {}, h("tr", { class: "fila-agregar" }, h("td", { colspan: columnas.length + 1 },
+      botonAgregar(textoBoton, () => agregarA(base, n, {}, idSeccion)))))));
+}
 
 // 1. Previsión de ventas a 3 años
 seccion("ventas", "Números", "Previsión de ventas a 3 años",
-  "Escriba hasta 5 productos o servicios, las unidades que espera vender cada mes, y su costo y precio por unidad. Los totales, la utilidad bruta y los gráficos se calculan solos.",
+  "Escriba sus productos o servicios (puede agregar todos los que necesite), las unidades que espera vender cada mes, y su costo y precio por unidad. Los totales, la utilidad bruta y los gráficos se calculan solos.",
   ["ventas"], () => {
+    const n = nProductos();
     const productos = h("div", { class: "plan-grid-5" },
-      Array.from({ length: N_PRODUCTOS }, (_, p) => h("label", {}, `Producto o servicio ${p + 1}`,
-        campoTexto(`ventas.productos.${p}`, { placeholder: `Producto ${p + 1}` }))));
+      Array.from({ length: n }, (_, p) => h("label", { class: "producto-campo" }, h("span", { class: "producto-titulo" }, `Producto o servicio ${p + 1}`,
+        n > 1 ? botonQuitar(`producto ${p + 1}`, () => quitarProducto(p)) : null),
+      campoTexto(`ventas.productos.${p}`, { placeholder: `Producto ${p + 1}` }))));
 
     const tabs = h("div", { class: "segmented plan-anos", role: "tablist", "aria-label": "Año de la previsión" },
-      ANOS.map((y) => h("button", { type: "button", role: "tab", "data-ano-ventas": y, "aria-selected": y === 0 ? "true" : "false", text: `Año ${y + 1}` })));
+      ANOS.map((y) => h("button", {
+        type: "button", role: "tab", "data-ano-ventas": y, "aria-selected": y === estado.anoVentas ? "true" : "false", text: `Año ${y + 1}`,
+        onclick: () => {
+          estado.anoVentas = y;
+          document.querySelectorAll("[data-ano-ventas]").forEach((x) => x.setAttribute("aria-selected", Number(x.dataset.anoVentas) === y ? "true" : "false"));
+          document.querySelectorAll("[data-panel-ano]").forEach((pn) => (pn.hidden = Number(pn.dataset.panelAno) !== y));
+          pintarGraficos();
+        },
+      })));
 
-    const anos = ANOS.map((y) => h("div", { class: "plan-ano", "data-panel-ano": y, hidden: y !== 0 },
+    const anos = ANOS.map((y) => h("div", { class: "plan-ano", "data-panel-ano": y, hidden: y !== estado.anoVentas },
       h("h4", { text: "Unidades vendidas por mes" }),
       h("div", { class: "table-wrap" }, h("table", { class: "plan-table plan-meses" },
         h("thead", {}, h("tr", {}, h("th", { text: "Producto" }),
           Array.from({ length: 12 }, (_, m) => h("th", { class: "num", "data-mes": `${y}.${m}`, text: etiquetaMes(y, m) })),
           h("th", { class: "num", text: "Total" }))),
-        h("tbody", {}, Array.from({ length: N_PRODUCTOS }, (_, p) => h("tr", {},
+        h("tbody", {}, Array.from({ length: n }, (_, p) => h("tr", {},
           h("th", { scope: "row" }, h("span", { "data-nombre-producto": p })),
           Array.from({ length: 12 }, (_, m) => h("td", {}, campoNum(`ventas.anos.${y}.unidades.${p}.${m}`, { min: 0, "aria-label": `Unidades ${m + 1}, producto ${p + 1}` }))),
           h("td", {}, salida(`v.${y}.unidades.${p}`))))),
@@ -112,7 +190,7 @@ seccion("ventas", "Números", "Previsión de ventas a 3 años",
       h("div", { class: "table-wrap" }, h("table", { class: "plan-table" },
         h("thead", {}, h("tr", {}, ["Producto", "Costo unitario", "Precio unitario", "Margen por unidad", "Unidades", "Ingresos", "Utilidad bruta", "Variación de ingresos"]
           .map((t, i) => h("th", { class: i ? "num" : null, text: t })))),
-        h("tbody", {}, Array.from({ length: N_PRODUCTOS }, (_, p) => h("tr", {},
+        h("tbody", {}, Array.from({ length: n }, (_, p) => h("tr", {},
           h("th", { scope: "row" }, h("span", { "data-nombre-producto": p })),
           h("td", {}, campoNum(`ventas.anos.${y}.costo.${p}`, { min: 0, "aria-label": `Costo unitario producto ${p + 1}` })),
           h("td", {}, campoNum(`ventas.anos.${y}.precio.${p}`, { min: 0, "aria-label": `Precio unitario producto ${p + 1}` })),
@@ -131,6 +209,7 @@ seccion("ventas", "Números", "Previsión de ventas a 3 años",
         h("label", {}, "Mes de inicio", h("input", { type: "month", "data-ruta": "general.inicio" })),
         h("label", {}, "Moneda", h("select", { "data-ruta": "general.moneda" }, h("option", { value: "CRC", text: "Colones (₡)" }), h("option", { value: "USD", text: "Dólares ($)" })))),
       h("h4", { text: "Productos o servicios" }), productos,
+      botonAgregar("Agregar producto o servicio", () => { lista("ventas.productos", nProductos()).push(""); cambioEstructura("ventas"); }),
       tabs, ...anos,
       h("h4", { text: "Resumen de los 3 años" }),
       h("div", { class: "table-wrap" }, h("table", { class: "plan-table" },
@@ -146,50 +225,56 @@ seccion("ventas", "Números", "Previsión de ventas a 3 años",
     ];
   });
 
+// Quitar un producto mueve los datos de los siguientes una posición hacia arriba, en los 3 años.
+function quitarProducto(p) {
+  const tiene = tieneDatos(leer(`ventas.productos.${p}`)) || ANOS.some((y) =>
+    ["unidades", "costo", "precio"].some((k) => tieneDatos(leer(`ventas.anos.${y}.${k}.${p}`))));
+  if (tiene && !confirm(`¿Quitar «${nombreProducto(p)}»? Se borrarán sus unidades, costos y precios.`)) return;
+  const n = nProductos();
+  lista("ventas.productos", n).splice(p, 1);
+  ANOS.forEach((y) => ["unidades", "costo", "precio"].forEach((k) => lista(`ventas.anos.${y}.${k}`, n).splice(p, 1)));
+  cambioEstructura("ventas");
+}
+
 // 2. Plan financiero
 seccion("financiero", "Números", "Plan financiero",
   "Explique los supuestos de sus proyecciones y, si necesita financiamiento, de dónde vendrá y en qué lo usará.",
-  ["financiero"], () => {
-    const lista = (clave, titulo) => h("div", {},
-      h("h4", { text: titulo }),
-      h("div", { class: "table-wrap" }, h("table", { class: "plan-table" },
-        h("thead", {}, h("tr", {}, h("th", { text: "Concepto" }), h("th", { class: "num", text: "Monto" }))),
-        h("tbody", {}, Array.from({ length: 9 }, (_, i) => h("tr", {},
-          h("td", {}, campoTexto(`financiero.${clave}.${i}.concepto`, { "aria-label": `${titulo} ${i + 1}` })),
-          h("td", {}, campoNum(`financiero.${clave}.${i}.monto`, { "aria-label": `Monto ${i + 1}` }))))),
-        h("tfoot", {}, h("tr", { class: "fila-total" }, h("th", { text: "Total" }), h("td", {}, salida(`f.${clave}`)))))));
-    return [
-      h("label", {}, "Supuestos clave", campoArea("financiero.supuestos", { placeholder: "¿Cómo llegó a estas cifras? (resultados anteriores, estudios de mercado, contratos). ¿Qué crecimiento y utilidad espera?" })),
-      h("div", { class: "plan-grid-2" },
-        lista("fuentes", "Fuentes de financiamiento"),
-        lista("usos", "Uso del financiamiento")),
-      h("div", { class: "plan-resumen" }, h("span", { text: "Diferencia (fuentes − usos)" }), salida("f.diferencia", "plan-cifra"), h("p", { "data-salida": "f.mensaje", class: "tool-message" })),
-    ];
-  });
+  ["financiero"], () => [
+    h("label", {}, "Supuestos clave", campoArea("financiero.supuestos", { placeholder: "¿Cómo llegó a estas cifras? (resultados anteriores, estudios de mercado, contratos). ¿Qué crecimiento y utilidad espera?" })),
+    h("div", { class: "plan-grid-2" },
+      h("div", {}, h("h4", { text: "Fuentes de financiamiento" }),
+        tablaFilas("financiero.fuentes", [["concepto", "Concepto"], ["monto", "Monto", "num"]], 5, "financiero", "Agregar fuente"),
+        h("p", { class: "plan-total-linea" }, "Total fuentes: ", salida("f.fuentes"))),
+      h("div", {}, h("h4", { text: "Uso del financiamiento" }),
+        tablaFilas("financiero.usos", [["concepto", "Concepto"], ["monto", "Monto", "num"]], 5, "financiero", "Agregar uso"),
+        h("p", { class: "plan-total-linea" }, "Total usos: ", salida("f.usos")))),
+    h("div", { class: "plan-resumen" }, h("span", { text: "Diferencia (fuentes − usos)" }), salida("f.diferencia", "plan-cifra"), h("p", { "data-salida": "f.mensaje", class: "tool-message" })),
+  ]);
 
 // 3. Balance de situación
 const BALANCE = [
-  { lado: "activos", grupo: "Activo corriente", total: "Total activo corriente", items: [["efectivo", "Efectivo y bancos"], ["cxc", "Cuentas por cobrar (clientes)"], ["inventario", "Inventario"], ["anticipados", "Gastos pagados por anticipado"], ["invCorto", "Inversiones a corto plazo"]] },
-  { lado: "activos", grupo: "Activo no corriente", total: "Total activo no corriente", items: [["invLargo", "Inversiones a largo plazo"], ["propiedad", "Propiedad, planta y equipo"], ["depAcum", "Depreciación acumulada (en negativo)"], ["intangibles", "Activos intangibles"]] },
-  { lado: "activos", grupo: "Otros activos", total: "Total otros activos", items: [["impDiferidos", "Impuestos diferidos"], ["otrosActivos", "Otros activos"]] },
-  { lado: "pasivos", grupo: "Pasivo corriente", total: "Total pasivo corriente", items: [["proveedores", "Proveedores"], ["prestCorto", "Préstamos a corto plazo"], ["impuestos", "Impuestos por pagar"], ["salarios", "Salarios y cargas sociales por pagar"], ["adelantos", "Ingresos recibidos por adelantado"], ["porcionCorriente", "Porción corriente de la deuda a largo plazo"]] },
-  { lado: "pasivos", grupo: "Pasivo no corriente", total: "Total pasivo no corriente", items: [["deudaLargo", "Deuda a largo plazo"], ["rentaDiferida", "Impuesto sobre la renta diferido"], ["otrosPasivos", "Otros pasivos"]] },
-  { lado: "patrimonio", grupo: "Patrimonio", total: "Total patrimonio", items: [["capital", "Capital aportado por los socios"], ["retenidas", "Utilidades retenidas"], ["otrosPatrimonio", "Otros"]] },
+  { clave: "ac", lado: "activos", grupo: "Activo corriente", total: "Total activo corriente", items: [["efectivo", "Efectivo y bancos"], ["cxc", "Cuentas por cobrar (clientes)"], ["inventario", "Inventario"], ["anticipados", "Gastos pagados por anticipado"], ["invCorto", "Inversiones a corto plazo"]] },
+  { clave: "anc", lado: "activos", grupo: "Activo no corriente", total: "Total activo no corriente", items: [["invLargo", "Inversiones a largo plazo"], ["propiedad", "Propiedad, planta y equipo"], ["depAcum", "Depreciación acumulada (en negativo)"], ["intangibles", "Activos intangibles"]] },
+  { clave: "oa", lado: "activos", grupo: "Otros activos", total: "Total otros activos", items: [["impDiferidos", "Impuestos diferidos"], ["otrosActivos", "Otros activos"]] },
+  { clave: "pc", lado: "pasivos", grupo: "Pasivo corriente", total: "Total pasivo corriente", items: [["proveedores", "Proveedores"], ["prestCorto", "Préstamos a corto plazo"], ["impuestos", "Impuestos por pagar"], ["salarios", "Salarios y cargas sociales por pagar"], ["adelantos", "Ingresos recibidos por adelantado"], ["porcionCorriente", "Porción corriente de la deuda a largo plazo"]] },
+  { clave: "pnc", lado: "pasivos", grupo: "Pasivo no corriente", total: "Total pasivo no corriente", items: [["deudaLargo", "Deuda a largo plazo"], ["rentaDiferida", "Impuesto sobre la renta diferido"], ["otrosPasivos", "Otros pasivos"]] },
+  { clave: "pat", lado: "patrimonio", grupo: "Patrimonio", total: "Total patrimonio", items: [["capital", "Capital aportado por los socios"], ["retenidas", "Utilidades retenidas"], ["otrosPatrimonio", "Otros"]] },
 ];
 seccion("balance", "Números", "Balance de situación",
-  "Lo que la empresa tiene (activos), lo que debe (pasivos) y lo que pertenece a los socios (patrimonio) al cierre de cada año. Siempre debe cumplirse: Activo = Pasivo + Patrimonio.",
+  "Lo que la empresa tiene (activos), lo que debe (pasivos) y lo que pertenece a los socios (patrimonio) al cierre de cada año. Siempre debe cumplirse: Activo = Pasivo + Patrimonio. En cada grupo puede agregar las cuentas que necesite.",
   ["balance"], () => {
-    const bloque = (lado, titulo, totalEtiqueta, totalClave) => h("div", { class: "table-wrap" }, h("table", { class: "plan-table" },
+    const bloque = (lados, titulo, totalEtiqueta, totalClave) => h("div", { class: "table-wrap" }, h("table", { class: "plan-table" },
       encabezadoAnual(titulo),
-      h("tbody", {}, BALANCE.filter((g) => g.lado === lado || (lado === "pasivos" && g.lado === "patrimonio")).flatMap((g, i) => [
+      h("tbody", {}, BALANCE.filter((g) => lados.includes(g.lado)).flatMap((g) => [
         filaGrupo(g.grupo),
         ...g.items.map(([k, et]) => filaAnual("balance", k, et)),
-        filaTotal(`b.grupo.${BALANCE.indexOf(g)}`, g.total, "fila-subtotal"),
+        ...filasExtra(`balance.extra.${g.clave}`, "balance", `Agregar cuenta a ${g.grupo.toLowerCase()}`),
+        filaTotal(`b.grupo.${g.clave}`, g.total, "fila-subtotal"),
       ])),
       h("tfoot", {}, filaTotal(totalClave, totalEtiqueta))));
     return [
-      bloque("activos", "Activos", "Total activos", "b.activos"),
-      bloque("pasivos", "Pasivo y patrimonio", "Total pasivo y patrimonio", "b.pasivoPatrimonio"),
+      bloque(["activos"], "Activos", "Total activos", "b.activos"),
+      bloque(["pasivos", "patrimonio"], "Pasivo y patrimonio", "Total pasivo y patrimonio", "b.pasivoPatrimonio"),
       h("div", { class: "table-wrap" }, h("table", { class: "plan-table" }, encabezadoAnual("Control"),
         h("tbody", {}, h("tr", {}, h("th", { scope: "row", text: "Diferencia (activo − pasivo − patrimonio)" }), ANOS.map((y) => h("td", {}, salida(`b.cuadre.${y}`))))))),
       h("h4", { text: "Razones financieras" }),
@@ -213,46 +298,70 @@ const FLUJO = [
 seccion("flujo", "Números", "Flujo de caja",
   "Cuánto dinero entra y sale realmente cada año. Escriba en negativo las salidas de efectivo. El efectivo inicial de los años 2 y 3 se toma del cierre del año anterior.",
   ["flujo"], () => [h("div", { class: "table-wrap" }, h("table", { class: "plan-table" }, encabezadoAnual(),
-    h("tbody", {}, FLUJO.flatMap((g) => [filaGrupo(g.grupo), ...g.items.map(([k, et]) => filaAnual("flujo", k, et)), filaTotal(`fc.${g.clave}`, g.total, "fila-subtotal")]),
-      filaGrupo("Cierre del año"),
-      filaTotal("fc.neto", "Aumento o disminución neta de efectivo", "fila-subtotal"),
-      filaAnual("flujo", "efectivoInicial", "Efectivo al inicio del año", { soloPrimerAno: true })),
+    h("tbody", {}, FLUJO.flatMap((g) => [
+      filaGrupo(g.grupo),
+      ...g.items.map(([k, et]) => filaAnual("flujo", k, et)),
+      ...filasExtra(`flujo.extra.${g.clave}`, "flujo", "Agregar concepto"),
+      filaTotal(`fc.${g.clave}`, g.total, "fila-subtotal"),
+    ]),
+    filaGrupo("Cierre del año"),
+    filaTotal("fc.neto", "Aumento o disminución neta de efectivo", "fila-subtotal"),
+    filaAnual("flujo", "efectivoInicial", "Efectivo al inicio del año", { soloPrimerAno: true })),
     h("tfoot", {}, filaTotal("fc.final", "Efectivo al final del año"))))]);
 
 // 5. Estado de resultados
 const RESULTADOS_VENTA = [["sueldosVenta", "Sueldos y salarios"], ["comisiones", "Comisiones"], ["publicidad", "Publicidad y mercadeo"], ["depVenta", "Depreciación"], ["otrosVenta", "Otros (p. ej. honorarios profesionales)"]];
 const RESULTADOS_ADM = [["sueldosAdm", "Sueldos y salarios"], ["cargas", "Cargas sociales (CCSS)"], ["beneficios", "Beneficios a empleados"], ["seguros", "Seguros y pólizas"], ["alquiler", "Alquiler"], ["servicios", "Servicios públicos (agua, luz, internet)"], ["depAdm", "Depreciación y amortización"], ["oficina", "Materiales de oficina"], ["viajes", "Viáticos y transporte"], ["mantenimiento", "Mantenimiento y alquiler de equipo"], ["intereses", "Intereses financieros"], ["patentes", "Patentes y permisos"], ["otrosAdm", "Otros"]];
 seccion("resultados", "Números", "Estado de resultados",
-  "Muestra si la empresa gana o pierde: ventas, menos costo de ventas, menos gastos, menos impuestos.",
+  "Muestra si la empresa gana o pierde: ventas, menos costo de ventas, menos gastos, menos impuestos. En cada grupo puede agregar las cuentas que necesite.",
   ["resultados"], () => [
     h("div", { class: "plan-grid-2" },
       h("label", {}, "Tasa del impuesto sobre la renta (%)", campoNum("resultados.tasaRenta", { min: 0, max: 100, placeholder: "30" }),
         h("small", { class: "field-hint", text: "Personas jurídicas: 30 %. Las pymes con ingresos brutos menores al límite que fija Hacienda pagan tarifas reducidas; consulte su caso." })),
-      h("div", { class: "plan-accion" }, h("button", { type: "button", class: "btn btn-outline btn-small", id: "btn-traer-ventas", text: "Usar los ingresos de la previsión de ventas" }))),
+      SOLO_LECTURA ? h("span") : h("div", { class: "plan-accion" }, h("button", { type: "button", class: "btn btn-outline btn-small", onclick: traerVentas, text: "Usar los ingresos de la previsión de ventas" }))),
     h("div", { class: "table-wrap" }, h("table", { class: "plan-table" }, encabezadoAnual(),
       h("tbody", {},
-        filaGrupo("Ingresos"), filaAnual("resultados", "ventasBrutas", "Ventas brutas"), filaAnual("resultados", "devoluciones", "Devoluciones y descuentos"),
-        filaTotal("r.ventasNetas", "Ventas netas", "fila-subtotal"),
+        filaGrupo("Ingresos"), filaAnual("resultados", "ventasBrutas", "Ventas brutas"), filaAnual("resultados", "devoluciones", "Devoluciones y descuentos (se restan)"),
+        filasExtra("resultados.extra.ingresos", "resultados", "Agregar otro ingreso"),
+        filaTotal("r.ventasNetas", "Ingresos netos", "fila-subtotal"),
         filaGrupo("Costo de ventas"), filaAnual("resultados", "invInicial", "Inventario inicial"), filaAnual("resultados", "compras", "Compras o costo de producción"),
-        filaTotal("r.disponible", "Total disponible para la venta", "fila-subtotal"), filaAnual("resultados", "invFinal", "Inventario final"),
+        filasExtra("resultados.extra.costo", "resultados", "Agregar otro costo"),
+        filaTotal("r.disponible", "Total disponible para la venta", "fila-subtotal"), filaAnual("resultados", "invFinal", "Inventario final (se resta)"),
         filaTotal("r.costo", "Costo de ventas", "fila-subtotal"),
         filaTotal("r.utilidadBruta", "Utilidad bruta"),
-        filaGrupo("Gastos de venta"), RESULTADOS_VENTA.map(([k, et]) => filaAnual("resultados", k, et)), filaTotal("r.gastosVenta", "Total gastos de venta", "fila-subtotal"),
-        filaGrupo("Gastos generales y administrativos"), RESULTADOS_ADM.map(([k, et]) => filaAnual("resultados", k, et)), filaTotal("r.gastosAdm", "Total gastos generales", "fila-subtotal"),
+        filaGrupo("Gastos de venta"), RESULTADOS_VENTA.map(([k, et]) => filaAnual("resultados", k, et)),
+        filasExtra("resultados.extra.venta", "resultados", "Agregar gasto de venta"),
+        filaTotal("r.gastosVenta", "Total gastos de venta", "fila-subtotal"),
+        filaGrupo("Gastos generales y administrativos"), RESULTADOS_ADM.map(([k, et]) => filaAnual("resultados", k, et)),
+        filasExtra("resultados.extra.adm", "resultados", "Agregar gasto general"),
+        filaTotal("r.gastosAdm", "Total gastos generales", "fila-subtotal"),
         filaTotal("r.gastosOperacion", "Total gastos de operación", "fila-subtotal"),
         filaTotal("r.antesImpuestos", "Utilidad antes de impuestos"),
         filaTotal("r.impuesto", "Impuesto sobre la renta", "fila-subtotal"),
         filaTotal("r.despuesImpuestos", "Utilidad después de impuestos"),
-        filaAnual("resultados", "extraordinarios", "Ganancias o pérdidas extraordinarias"), filaAnual("resultados", "impExtra", "Impuesto sobre extraordinarios")),
+        filaGrupo("Partidas extraordinarias"),
+        filaAnual("resultados", "extraordinarios", "Ganancias o pérdidas extraordinarias"), filaAnual("resultados", "impExtra", "Impuesto sobre extraordinarios (se resta)"),
+        filasExtra("resultados.extra.extraordinarios", "resultados", "Agregar partida extraordinaria")),
       h("tfoot", {}, filaTotal("r.neto", "Resultado neto")))),
     h("div", { class: "table-wrap" }, h("table", { class: "plan-table" }, encabezadoAnual("Indicador"),
       h("tbody", {}, [["margenBruto", "Margen bruto"], ["margenNeto", "Margen neto"]].map(([k, et]) =>
         h("tr", {}, h("th", { scope: "row", text: et }), ANOS.map((y) => h("td", {}, salida(`r.${k}.${y}`)))))))),
   ]);
 
-// Secciones de texto
-const textos = (id, titulo, ayuda, campos) => seccion(id, "Estrategia", titulo, ayuda, [`textos.${id}`],
-  () => campos.map(([k, et, ph]) => h("label", {}, et, campoArea(`textos.${id}.${k}`, { placeholder: ph || "" }))));
+// Secciones de texto: campos fijos + apartados que agrega el cliente.
+function textos(id, titulo, ayuda, campos) {
+  seccion(id, "Estrategia", titulo, ayuda, [`textos.${id}`], () => {
+    const base = `textos.${id}.extra`;
+    return [
+      ...campos.map(([k, et, ph]) => h("label", {}, et, campoArea(`textos.${id}.${k}`, { placeholder: ph || "" }))),
+      ...Array.from({ length: largo(base, 0) }, (_, i) => h("div", { class: "plan-card apartado" },
+        h("div", { class: "extra-nombre" }, campoTexto(`${base}.${i}.titulo`, { placeholder: "Título del apartado", "aria-label": "Título del apartado" }),
+          botonQuitar("apartado", () => quitarDe(base, i, id))),
+        campoArea(`${base}.${i}.texto`, { "aria-label": "Contenido del apartado" }))),
+      botonAgregar("Agregar apartado", () => agregarA(base, 0, { titulo: "", texto: "" }, id)),
+    ];
+  });
+}
 
 textos("vision", "Visión general de la empresa", "Describa la empresa y el sector en el que opera: tendencias, clientes, regulaciones y factores económicos que la afectan.", [
   ["general", "Visión general", "¿Qué hace la empresa, desde cuándo y en qué sector?"],
@@ -269,15 +378,13 @@ textos("oferta", "Oferta de productos o servicios", "Describa sus productos o se
 ]);
 
 // 9. Calendario y métricas
-const tablaFilas = (base, columnas, filas = 6) => h("div", { class: "table-wrap" }, h("table", { class: "plan-table plan-filas" },
-  h("thead", {}, h("tr", {}, columnas.map(([, t]) => h("th", { text: t })))),
-  h("tbody", {}, Array.from({ length: filas }, (_, i) => h("tr", {}, columnas.map(([k, t, tipo]) => h("td", {},
-    tipo === "fecha" ? h("input", { type: "date", "data-ruta": `${base}.${i}.${k}`, "aria-label": `${t} ${i + 1}` })
-      : campoTexto(`${base}.${i}.${k}`, { "aria-label": `${t} ${i + 1}` }))))))));
 seccion("calendario", "Estrategia", "Calendario y métricas", "Las actividades, los hitos y los indicadores con los que medirá el avance del plan.", ["calendario"], () => [
-  h("h4", { text: "Calendario de actividades" }), tablaFilas("calendario.actividades", [["actividad", "Actividad"], ["objetivo", "Objetivo"], ["fecha", "Fecha límite", "fecha"]]),
-  h("h4", { text: "Hitos" }), tablaFilas("calendario.hitos", [["nombre", "Hito"], ["descripcion", "Descripción"], ["fecha", "Fecha límite", "fecha"]]),
-  h("h4", { text: "Indicadores clave (KPI)" }), tablaFilas("calendario.kpis", [["nombre", "Indicador"], ["descripcion", "Descripción"], ["metrica", "Meta"]]),
+  h("h4", { text: "Calendario de actividades" }),
+  tablaFilas("calendario.actividades", [["actividad", "Actividad"], ["objetivo", "Objetivo"], ["fecha", "Fecha límite", "fecha"]], 5, "calendario", "Agregar actividad"),
+  h("h4", { text: "Hitos" }),
+  tablaFilas("calendario.hitos", [["nombre", "Hito"], ["descripcion", "Descripción"], ["fecha", "Fecha límite", "fecha"]], 5, "calendario", "Agregar hito"),
+  h("h4", { text: "Indicadores clave (KPI)" }),
+  tablaFilas("calendario.kpis", [["nombre", "Indicador"], ["descripcion", "Descripción"], ["metrica", "Meta"]], 5, "calendario", "Agregar indicador"),
 ]);
 
 textos("resumen", "Resumen ejecutivo", "Se escribe al final: resume en pocas líneas los puntos clave de todo el plan.", [
@@ -295,31 +402,43 @@ const MERCADO = [
   ["Geográfico", [["provincia", "Provincia"], ["canton", "Cantón o ciudad"]]],
   ["Comportamiento", [["gasto", "Hábitos de gasto"], ["marca", "Relación con la marca"], ["momento", "Momento u ocasión de compra"]]],
 ];
-seccion("mercado", "Estrategia", "Mercado objetivo", "Describa hasta dos segmentos de clientes ideales.", ["mercado"], () => [
-  h("div", { class: "plan-grid-2" }, [0, 1].map((s) => h("div", { class: "plan-card" },
-    h("h4", {}, `Segmento ${s + 1}`),
+seccion("mercado", "Estrategia", "Mercado objetivo", "Describa sus segmentos de clientes ideales. Puede agregar segmentos y características propias.", ["mercado"], () => [
+  h("div", { class: "plan-grid-2" }, Array.from({ length: largo("mercado", 2) }, (_, s) => h("div", { class: "plan-card" },
+    h("div", { class: "extra-nombre" }, h("h4", {}, `Segmento ${s + 1}`), largo("mercado", 2) > 1 ? botonQuitar(`segmento ${s + 1}`, () => quitarDe("mercado", s, "mercado")) : null),
     campoTexto(`mercado.${s}.nombre`, { placeholder: "Nombre del segmento (p. ej. familias jóvenes)", "aria-label": `Nombre del segmento ${s + 1}` }),
     MERCADO.map(([grupo, campos]) => h("div", {}, h("p", { class: "plan-subgrupo", text: grupo }),
-      campos.map(([k, et]) => h("label", {}, et, campoTexto(`mercado.${s}.${k}`)))))))),
+      campos.map(([k, et]) => h("label", {}, et, campoTexto(`mercado.${s}.${k}`))))),
+    h("p", { class: "plan-subgrupo", text: "Otras características" }),
+    Array.from({ length: largo(`mercado.${s}.extra`, 0) }, (_, i) => h("div", { class: "extra-par" },
+      campoTexto(`mercado.${s}.extra.${i}.nombre`, { placeholder: "Característica", "aria-label": "Característica" }),
+      campoTexto(`mercado.${s}.extra.${i}.valor`, { placeholder: "Descripción", "aria-label": "Descripción" }),
+      botonQuitar("característica", () => quitarDe(`mercado.${s}.extra`, i, "mercado")))),
+    botonAgregar("Agregar característica", () => agregarA(`mercado.${s}.extra`, 0, { nombre: "", valor: "" }, "mercado"))))),
+  botonAgregar("Agregar segmento", () => agregarA("mercado", largo("mercado", 2), {}, "mercado")),
 ]);
 
 // 13. Análisis FODA
-const FODA = [["fortalezas", "Fortalezas", "Factores internos (+)"], ["debilidades", "Debilidades", "Factores internos (−)"], ["oportunidades", "Oportunidades", "Factores externos (+)"], ["amenazas", "Amenazas", "Factores externos (−)"]];
+const FODA = [["fortalezas", "Fortalezas", "Factores internos (+)", "fortaleza"], ["debilidades", "Debilidades", "Factores internos (−)", "debilidad"], ["oportunidades", "Oportunidades", "Factores externos (+)", "oportunidad"], ["amenazas", "Amenazas", "Factores externos (−)", "amenaza"]];
 seccion("foda", "Estrategia", "Análisis FODA", "Fortalezas y debilidades (internas), oportunidades y amenazas (externas), con su importancia.", ["foda"], () => [
-  h("div", { class: "plan-grid-2" }, FODA.map(([k, titulo, sub]) => h("div", { class: `plan-card foda-${k}` },
-    h("h4", {}, titulo, h("small", { text: ` · ${sub}` })),
-    Array.from({ length: 8 }, (_, i) => h("div", { class: "foda-fila" },
-      h("span", { class: "foda-num", text: i + 1 }),
-      campoTexto(`foda.${k}.${i}.texto`, { "aria-label": `${titulo} ${i + 1}` }),
-      h("select", { "data-ruta": `foda.${k}.${i}.importancia`, "aria-label": `Importancia ${i + 1}` },
-        ["", "Alta", "Media", "Baja"].map((v) => h("option", { value: v, text: v || "Importancia" })))))))),
+  h("div", { class: "plan-grid-2" }, FODA.map(([k, titulo, sub, singular]) => {
+    const base = `foda.${k}`, n = largo(base, 6);
+    return h("div", { class: `plan-card foda-${k}` },
+      h("h4", {}, titulo, h("small", { text: ` · ${sub}` })),
+      Array.from({ length: n }, (_, i) => h("div", { class: "foda-fila" },
+        h("span", { class: "foda-num", text: i + 1 }),
+        campoTexto(`${base}.${i}.texto`, { "aria-label": `${titulo} ${i + 1}` }),
+        h("select", { "data-ruta": `${base}.${i}.importancia`, "aria-label": `Importancia ${i + 1}` },
+          ["", "Alta", "Media", "Baja"].map((v) => h("option", { value: v, text: v || "Importancia" }))),
+        botonQuitar("factor", () => quitarDe(base, i, "foda")))),
+      botonAgregar(`Agregar ${singular}`, () => agregarA(base, n, { texto: "", importancia: "" }, "foda")));
+  })),
 ]);
 
 // 14. Competencia
 seccion("competencia", "Estrategia", "Competencia", "Cómo hizo el análisis, qué alternativas usan hoy sus clientes y en qué se diferencia usted.", ["competencia"], () => [
   h("label", {}, "Análisis competitivo", campoArea("competencia.analisis")),
   h("h4", { text: "Competidores" }),
-  tablaFilas("competencia.competidores", [["nombre", "Competidor (tipo o nombre)"], ["descripcion", "Descripción"], ["fortaleza", "Su principal fortaleza"], ["diferencia", "Cómo me diferencio"]], 5),
+  tablaFilas("competencia.competidores", [["nombre", "Competidor (tipo o nombre)"], ["descripcion", "Descripción"], ["fortaleza", "Su principal fortaleza"], ["diferencia", "Cómo me diferencio"]], 5, "competencia", "Agregar competidor"),
 ]);
 
 // ---------------------------------------------------------------- Cálculos
@@ -327,22 +446,24 @@ seccion("competencia", "Estrategia", "Competencia", "Cómo hizo el análisis, qu
 const S = {}; // salidas calculadas: clave → texto
 function calcular() {
   for (const k in S) delete S[k];
+  const n = nProductos();
 
   // Ventas
+  const ingresosProducto = ANOS.map(() => []);
   const anual = ANOS.map((y) => {
     let unidadesTotal = 0, ingresosTotal = 0, utilidadTotal = 0;
     const mes = Array(12).fill(0);
-    for (let p = 0; p < N_PRODUCTOS; p++) {
+    for (let p = 0; p < n; p++) {
       const costo = num(`ventas.anos.${y}.costo.${p}`), precio = num(`ventas.anos.${y}.precio.${p}`);
       const meses = Array.from({ length: 12 }, (_, m) => num(`ventas.anos.${y}.unidades.${p}.${m}`));
       meses.forEach((u, m) => (mes[m] += u));
       const unidades = sumar(meses), ingresos = unidades * precio, utilidad = unidades * (precio - costo);
       unidadesTotal += unidades; ingresosTotal += ingresos; utilidadTotal += utilidad;
+      ingresosProducto[y][p] = ingresos;
       S[`v.${y}.margen.${p}`] = fmtMoneda(precio - costo);
       S[`v.${y}.unidades.${p}`] = fmtNum(unidades);
       S[`v.${y}.ingresos.${p}`] = fmtMoneda(ingresos);
       S[`v.${y}.utilidad.${p}`] = fmtMoneda(utilidad);
-      S[`v.${y}._ing.${p}`] = ingresos;
     }
     mes.forEach((u, m) => (S[`v.${y}.mes.${m}`] = fmtNum(u)));
     S[`v.${y}.unidadesTotal`] = fmtNum(unidadesTotal);
@@ -352,15 +473,18 @@ function calcular() {
     return { unidadesTotal, ingresosTotal, utilidadTotal };
   });
   ANOS.forEach((y) => {
-    for (let p = 0; p < N_PRODUCTOS; p++) {
-      S[`v.${y}.variacion.${p}`] = y === 0 ? "—" : fmtPct(div(S[`v.${y}._ing.${p}`], S[`v.${y - 1}._ing.${p}`]) - 1);
+    for (let p = 0; p < n; p++) {
+      S[`v.${y}.variacion.${p}`] = y === 0 ? "—" : fmtPct(div(ingresosProducto[y][p], ingresosProducto[y - 1][p]) - 1);
     }
     S[`v.${y}.variacionTotal`] = y === 0 ? "—" : fmtPct(div(anual[y].ingresosTotal, anual[y - 1].ingresosTotal) - 1);
   });
   calcular.anual = anual;
 
   // Plan financiero
-  const totalLista = (clave) => sumar(Array.from({ length: 9 }, (_, i) => num(`financiero.${clave}.${i}.monto`)));
+  const totalLista = (clave) => {
+    const a = leer(`financiero.${clave}`);
+    return Array.isArray(a) ? a.reduce((t, _, i) => t + num(`financiero.${clave}.${i}.monto`), 0) : 0;
+  };
   const fuentes = totalLista("fuentes"), usos = totalLista("usos");
   S["f.fuentes"] = fmtMoneda(fuentes);
   S["f.usos"] = fmtMoneda(usos);
@@ -369,22 +493,21 @@ function calcular() {
     : fuentes > usos ? "Las fuentes superan los usos: tiene un margen disponible." : "Los usos superan las fuentes: falta financiamiento.";
   S["f.mensaje.clase"] = fuentes >= usos ? "ok" : "warn";
 
-  // Balance
+  // Balance (cuentas fijas + cuentas agregadas)
   ANOS.forEach((y) => {
-    const totGrupo = BALANCE.map((g, i) => {
-      const t = sumar(g.items.map(([k]) => num(`balance.${k}.${y}`)));
-      S[`b.grupo.${i}.${y}`] = fmtMoneda(t);
-      return t;
+    const t = {};
+    BALANCE.forEach((g) => {
+      t[g.clave] = sumar(g.items.map(([k]) => num(`balance.${k}.${y}`))) + sumaExtras(`balance.extra.${g.clave}`, y);
+      S[`b.grupo.${g.clave}.${y}`] = fmtMoneda(t[g.clave]);
     });
-    const [ac, anc, oa, pc, pnc, pat] = totGrupo;
-    const activos = ac + anc + oa, pasivos = pc + pnc;
+    const activos = t.ac + t.anc + t.oa, pasivos = t.pc + t.pnc, pat = t.pat;
     S[`b.activos.${y}`] = fmtMoneda(activos);
     S[`b.pasivoPatrimonio.${y}`] = fmtMoneda(pasivos + pat);
     const dif = activos - pasivos - pat;
     S[`b.cuadre.${y}`] = !activos && !pasivos && !pat ? "—" : Math.abs(dif) < 0.5 ? "Cuadra ✓" : `No cuadra: ${fmtMoneda(dif)}`;
     S[`b.razon.endeudamiento.${y}`] = fmtPct(div(pasivos, activos));
-    S[`b.razon.corriente.${y}`] = fmtRazon(div(ac, pc));
-    S[`b.razon.capitalTrabajo.${y}`] = activos || pasivos ? fmtMoneda(ac - pc) : "—";
+    S[`b.razon.corriente.${y}`] = fmtRazon(div(t.ac, t.pc));
+    S[`b.razon.capitalTrabajo.${y}`] = activos || pasivos ? fmtMoneda(t.ac - t.pc) : "—";
     S[`b.razon.apalancamiento.${y}`] = fmtRazon(div(activos, pat));
     S[`b.razon.deudaPatrimonio.${y}`] = fmtRazon(div(pasivos, pat));
   });
@@ -393,7 +516,7 @@ function calcular() {
   let efectivo = num("flujo.efectivoInicial.0");
   ANOS.forEach((y) => {
     const tot = FLUJO.map((g) => {
-      const t = sumar(g.items.map(([k]) => num(`flujo.${k}.${y}`)));
+      const t = sumar(g.items.map(([k]) => num(`flujo.${k}.${y}`))) + sumaExtras(`flujo.extra.${g.clave}`, y);
       S[`fc.${g.clave}.${y}`] = fmtMoneda(t);
       return t;
     });
@@ -408,21 +531,33 @@ function calcular() {
   const tasa = (leer("resultados.tasaRenta") ?? 30) / 100; // 30 % si no se indica otra tasa
   ANOS.forEach((y) => {
     const r = (k) => num(`resultados.${k}.${y}`);
-    const ventasNetas = r("ventasBrutas") - r("devoluciones");
-    const disponible = r("invInicial") + r("compras");
+    const extra = (k) => sumaExtras(`resultados.extra.${k}`, y);
+    const ventasNetas = r("ventasBrutas") - r("devoluciones") + extra("ingresos");
+    const disponible = r("invInicial") + r("compras") + extra("costo");
     const costo = disponible - r("invFinal");
     const utilidadBruta = ventasNetas - costo;
-    const gastosVenta = sumar(RESULTADOS_VENTA.map(([k]) => r(k)));
-    const gastosAdm = sumar(RESULTADOS_ADM.map(([k]) => r(k)));
+    const gastosVenta = sumar(RESULTADOS_VENTA.map(([k]) => r(k))) + extra("venta");
+    const gastosAdm = sumar(RESULTADOS_ADM.map(([k]) => r(k))) + extra("adm");
     const antes = utilidadBruta - gastosVenta - gastosAdm;
     const impuesto = antes > 0 ? antes * tasa : 0;
     const despues = antes - impuesto;
-    const neto = despues + r("extraordinarios") - r("impExtra");
+    const neto = despues + r("extraordinarios") - r("impExtra") + extra("extraordinarios");
     Object.entries({ ventasNetas, disponible, costo, utilidadBruta, gastosVenta, gastosAdm, gastosOperacion: gastosVenta + gastosAdm, antesImpuestos: antes, impuesto, despuesImpuestos: despues, neto })
       .forEach(([k, v]) => (S[`r.${k}.${y}`] = fmtMoneda(v)));
     S[`r.margenBruto.${y}`] = fmtPct(div(utilidadBruta, ventasNetas));
     S[`r.margenNeto.${y}`] = fmtPct(div(neto, ventasNetas));
   });
+}
+
+function traerVentas() {
+  calcular();
+  ANOS.forEach((y) => {
+    const v = Math.round(calcular.anual[y].ingresosTotal * 100) / 100;
+    escribir(`resultados.ventasBrutas.${y}`, v);
+    const campo = document.querySelector(`[data-ruta="resultados.ventasBrutas.${y}"]`);
+    if (campo) campo.value = v;
+  });
+  alCambiarDatos();
 }
 
 // ---------------------------------------------------------------- Gráficos (SVG)
@@ -528,9 +663,13 @@ function pintarGraficos() {
   if (!area1) return;
   if (!calcular.anual) calcular();
   const y = estado.anoVentas;
-  const activos = Array.from({ length: N_PRODUCTOS }, (_, p) => p).filter((p) =>
-    (leer(`ventas.productos.${p}`) || "").trim() || Array.from({ length: 12 }, (_, m) => num(`ventas.anos.${y}.unidades.${p}.${m}`)).some(Boolean));
-  const series = activos.map((p) => ({ nombre: nombreProducto(p), color: COLORES[p], valores: Array.from({ length: 12 }, (_, m) => num(`ventas.anos.${y}.unidades.${p}.${m}`)) }));
+  const unidadesMes = (p) => Array.from({ length: 12 }, (_, m) => num(`ventas.anos.${y}.unidades.${p}.${m}`));
+  const activos = Array.from({ length: nProductos() }, (_, p) => p).filter((p) =>
+    (leer(`ventas.productos.${p}`) || "").trim() || unidadesMes(p).some(Boolean));
+  // Hasta 8 productos con color propio; el resto se agrupa en "Otros".
+  const series = activos.slice(0, COLORES.length).map((p) => ({ nombre: nombreProducto(p), color: COLORES[p % COLORES.length], valores: unidadesMes(p) }));
+  const resto = activos.slice(COLORES.length);
+  if (resto.length) series.push({ nombre: `Otros (${resto.length})`, color: COLOR_OTROS, valores: Array.from({ length: 12 }, (_, m) => sumar(resto.map((p) => unidadesMes(p)[m]))) });
   leyenda(document.getElementById("leyenda-unidades"), series.length > 1 ? series : []);
   graficoLineas(area1, Array.from({ length: 12 }, (_, m) => etiquetaMes(y, m)), series, fmtNum);
   document.querySelector("[data-chart-ano]").textContent = ` · ${etiquetaAno(y)}`;
@@ -584,7 +723,38 @@ function mostrarSeccion(id) {
   if (id === "ventas") pintarGraficos();
 }
 
-function construir(soloLectura) {
+function construirSeccion(s) {
+  const i = SECCIONES.indexOf(s);
+  const el = h("section", { class: "plan-seccion", "data-seccion": s.id, hidden: estado.seccion !== s.id, "aria-labelledby": `titulo-${s.id}` },
+    h("p", { class: "eyebrow eyebrow-accent", text: `${s.grupo} · ${i + 1} de ${SECCIONES.length}` }),
+    h("h3", { class: "plan-titulo", id: `titulo-${s.id}`, text: s.titulo }),
+    h("p", { class: "plan-ayuda", text: s.ayuda }),
+    ...s.construir(),
+    h("div", { class: "plan-pasos" },
+      i > 0 ? h("button", { type: "button", class: "btn btn-outline btn-small", onclick: () => { mostrarSeccion(SECCIONES[i - 1].id); scrollArriba(); }, text: `‹ ${SECCIONES[i - 1].titulo}` }) : h("span"),
+      i < SECCIONES.length - 1 ? h("button", { type: "button", class: "btn btn-small", onclick: () => { mostrarSeccion(SECCIONES[i + 1].id); scrollArriba(); }, text: `${SECCIONES[i + 1].titulo} ›` }) : h("span")));
+  // Valores guardados en los campos.
+  el.querySelectorAll("[data-ruta]").forEach((campo) => {
+    const v = leer(campo.dataset.ruta);
+    if (v != null) campo.value = v;
+    if (SOLO_LECTURA) campo.disabled = true;
+  });
+  const sel = el.querySelector('[data-ruta="general.moneda"]');
+  if (sel && !leer("general.moneda")) sel.value = "CRC";
+  return el;
+}
+
+// Al agregar o quitar elementos, se vuelve a dibujar solo esa sección y se guarda.
+function cambioEstructura(idSeccion) {
+  const s = SECCIONES.find((x) => x.id === idSeccion);
+  const viejo = document.querySelector(`[data-seccion="${idSeccion}"]`);
+  const foco = document.activeElement?.dataset?.ruta;
+  viejo.replaceWith(construirSeccion(s));
+  if (foco) document.querySelector(`[data-ruta="${foco}"]`)?.focus();
+  alCambiarDatos();
+}
+
+function construir() {
   const nav = document.getElementById("plan-nav");
   const cont = document.getElementById("plan-secciones");
   const grupos = [...new Set(SECCIONES.map((s) => s.grupo))];
@@ -596,38 +766,23 @@ function construir(soloLectura) {
         type: "button", "data-nav": s.id, onclick: () => mostrarSeccion(s.id),
       }, h("span", { text: `${SECCIONES.indexOf(s) + 1}. ${s.titulo}` }))))),
     h("p", { class: "plan-progreso", id: "plan-progreso" }));
-
-  cont.replaceChildren(...SECCIONES.map((s, i) => h("section", { class: "plan-seccion", "data-seccion": s.id, hidden: true, "aria-labelledby": `titulo-${s.id}` },
-    h("p", { class: "eyebrow eyebrow-accent", text: `${s.grupo} · ${i + 1} de ${SECCIONES.length}` }),
-    h("h3", { class: "plan-titulo", id: `titulo-${s.id}`, text: s.titulo }),
-    h("p", { class: "plan-ayuda", text: s.ayuda }),
-    ...s.construir(),
-    h("div", { class: "plan-pasos" },
-      i > 0 ? h("button", { type: "button", class: "btn btn-outline btn-small", onclick: () => { mostrarSeccion(SECCIONES[i - 1].id); scrollArriba(); }, text: `‹ ${SECCIONES[i - 1].titulo}` }) : h("span"),
-      i < SECCIONES.length - 1 ? h("button", { type: "button", class: "btn btn-small", onclick: () => { mostrarSeccion(SECCIONES[i + 1].id); scrollArriba(); }, text: `${SECCIONES[i + 1].titulo} ›` }) : h("span")))));
-
-  // Valores guardados en los campos.
-  cont.querySelectorAll("[data-ruta]").forEach((el) => {
-    const v = leer(el.dataset.ruta);
-    if (v != null) el.value = v;
-    if (soloLectura) el.disabled = true;
-  });
-  if (!leer("general.moneda")) cont.querySelector('[data-ruta="general.moneda"]').value = "CRC";
-  if (soloLectura) cont.querySelectorAll("#btn-traer-ventas").forEach((b) => (b.hidden = true));
-
-  cont.querySelectorAll("[data-ano-ventas]").forEach((b) => b.addEventListener("click", () => {
-    estado.anoVentas = Number(b.dataset.anoVentas);
-    cont.querySelectorAll("[data-ano-ventas]").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
-    cont.querySelectorAll("[data-panel-ano]").forEach((p) => (p.hidden = Number(p.dataset.panelAno) !== estado.anoVentas));
-    pintarGraficos();
-  }));
-
-  mostrarSeccion(SECCIONES[0].id);
+  cont.replaceChildren(...SECCIONES.map(construirSeccion));
+  mostrarSeccion(estado.seccion);
   pintarSalidas();
 }
 const scrollArriba = () => document.getElementById("plan-app").scrollIntoView({ behavior: "smooth", block: "start" });
 
 // ---------------------------------------------------------------- Inicio y guardado
+
+// El plan se guarda como texto JSON en un solo campo: Firestore no admite listas dentro de
+// listas (como las unidades por producto y mes), y así el formato no tiene restricciones.
+const serializar = () => JSON.stringify(datos);
+function deserializar(doc) {
+  if (typeof doc?.json === "string") {
+    try { return JSON.parse(doc.json) || {}; } catch { return {}; }
+  }
+  return doc?.datos || {};
+}
 
 export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
   const estadoCarga = document.getElementById("plan-estado");
@@ -641,7 +796,7 @@ export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
     guardando = true;
     marcar("Guardando…");
     try {
-      await fs.setDoc(ref, { datos, actualizado: fs.serverTimestamp() });
+      await fs.setDoc(ref, { json: serializar(), version: 2, actualizado: fs.serverTimestamp() });
       marcar("Cambios guardados", "ok");
     } catch {
       marcar("No se pudo guardar. Revise su conexión.", "warn");
@@ -663,7 +818,7 @@ export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
       return;
     }
     const pedido = new URLSearchParams(location.search).get("cliente");
-    const ajeno = pedido && pedido !== usuario.uid;
+    const ajeno = Boolean(pedido && pedido !== usuario.uid);
     if (ajeno && !esAsesor(usuario)) {
       estadoCarga.textContent = "Solo puede ver su propio plan de negocios.";
       return;
@@ -672,7 +827,7 @@ export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
     ref = fs.doc(db, "planes", uid);
     try {
       const snap = await fs.getDoc(ref);
-      datos = snap.exists() ? snap.data().datos || {} : {};
+      datos = snap.exists() ? deserializar(snap.data()) : {};
       if (ajeno) {
         const perfil = await fs.getDoc(fs.doc(db, "usuarios", uid)).catch(() => null);
         const p = perfil?.exists() ? perfil.data() : {};
@@ -686,7 +841,9 @@ export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
         : "No se pudo cargar el plan. Recargue la página.";
       return;
     }
-    construir(ajeno);
+    SOLO_LECTURA = ajeno;
+    alCambiarDatos = ajeno ? () => {} : () => { pintarSalidas(); programar(); };
+    construir();
     document.getElementById("plan-espera").hidden = true;
     document.getElementById("plan-app").hidden = false;
     pintarGraficos();
@@ -694,26 +851,15 @@ export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
 
     if (ajeno) return;
     const cont = document.getElementById("plan-secciones");
-    const alCambiar = (e) => {
+    const alEscribir = (e) => {
       const el = e.target;
       if (!el.dataset?.ruta) return;
       const v = el.dataset.tipo === "num" ? (el.value === "" ? null : Number(el.value)) : el.value;
       escribir(el.dataset.ruta, v);
-      pintarSalidas();
-      programar();
+      alCambiarDatos();
     };
-    cont.addEventListener("input", alCambiar);
-    cont.addEventListener("change", alCambiar);
-    document.getElementById("btn-traer-ventas")?.addEventListener("click", () => {
-      ANOS.forEach((y) => {
-        const v = Math.round(calcular.anual[y].ingresosTotal * 100) / 100;
-        escribir(`resultados.ventasBrutas.${y}`, v);
-        const campo = cont.querySelector(`[data-ruta="resultados.ventasBrutas.${y}"]`);
-        if (campo) campo.value = v;
-      });
-      pintarSalidas();
-      programar();
-    });
+    cont.addEventListener("input", alEscribir);
+    cont.addEventListener("change", alEscribir);
   });
 
   document.getElementById("btn-imprimir").addEventListener("click", () => {
