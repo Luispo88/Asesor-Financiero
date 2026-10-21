@@ -1,6 +1,9 @@
 // Plan de negocios del Área de clientes: entradas, cálculos y gráficos de las 14 secciones,
 // guardados en Firestore (planes/{uid}). El asesor puede abrir el plan de un cliente en solo lectura.
 // Todas las listas (productos, cuentas, filas, segmentos, apartados) admiten agregar elementos.
+// El análisis financiero (analisis.js) produce un diagnóstico breve para el cliente y un análisis
+// completo que solo ve el asesor.
+import { analizar } from "./analisis.js";
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const MIN_PRODUCTOS = 5;
@@ -27,6 +30,7 @@ function h(tag, props = {}, ...hijos) {
 
 let datos = {};
 let SOLO_LECTURA = false;
+let VER_ANALISIS = false; // sección "Análisis del asesor" (solo la cuenta del asesor)
 let alCambiarDatos = () => {};
 
 const leer = (ruta) => ruta.split(".").reduce((o, k) => (o == null ? undefined : o[k]), datos);
@@ -106,6 +110,7 @@ function quitarDe(ruta, i, idSeccion) {
 // ---------------------------------------------------------------- Secciones
 
 const SECCIONES = [];
+const visibles = () => SECCIONES.filter((s) => !s.soloAsesor || VER_ANALISIS);
 const seccion = (id, grupo, titulo, ayuda, raices, construir) => SECCIONES.push({ id, grupo, titulo, ayuda, raices, construir });
 
 const encabezadoAnual = (titulo = "Concepto") => h("thead", {}, h("tr", {}, h("th", { text: titulo }), ANOS.map((y) => h("th", { class: "num", "data-ano": y, text: etiquetaAno(y) }))));
@@ -441,12 +446,131 @@ seccion("competencia", "Estrategia", "Competencia", "Cómo hizo el análisis, qu
   tablaFilas("competencia.competidores", [["nombre", "Competidor (tipo o nombre)"], ["descripcion", "Descripción"], ["fortaleza", "Su principal fortaleza"], ["diferencia", "Cómo me diferencio"]], 5, "competencia", "Agregar competidor"),
 ]);
 
+// 15. Diagnóstico financiero (cliente: breve) y 16. Análisis del asesor (completo, solo asesor)
+seccion("diagnostico", "Resultados", "Diagnóstico financiero",
+  "Un resumen automático del estado de su empresa según la información que ingresó en el plan. Es orientativo: su asesor lo revisará con usted.",
+  [], () => [h("div", { id: "diag-cliente", class: "diag" })]);
+seccion("analisis", "Resultados", "Análisis del asesor",
+  "Análisis completo con indicadores, hallazgos, recomendaciones y preguntas para guiar la reunión con el cliente. Esta sección solo la ve el asesor.",
+  [], () => [h("div", { id: "diag-asesor", class: "diag" })]);
+SECCIONES.at(-1).soloAsesor = true;
+
+// Reemplaza el contenido de un elemento aceptando listas anidadas y valores vacíos.
+const rellenarEn = (el, ...hijos) => el.replaceChildren(...hijos.flat(3).filter((x) => x != null && x !== false));
+const ETIQUETA_ESTADO = { fortaleza: "Sano", atencion: "Atención", alerta: "Alerta" };
+const chip = (estado, texto) => h("span", { class: `semaforo ${estado === "fortaleza" ? "sano" : estado}`, text: texto || ETIQUETA_ESTADO[estado] });
+const claseCalificacion = (p) => (p == null ? "" : p >= 75 ? "sano" : p >= 55 ? "atencion" : p >= 35 ? "atencion" : "alerta");
+
+function pintarDiagnosticoCliente(el) {
+  const A = calcular.analisis;
+  if (!A) return;
+  const hay = A.fortalezas.length + A.mejoras.length;
+  if (!hay) {
+    rellenarEn(el, h("div", { class: "callout" }, h("p", { text: "Complete la previsión de ventas, el estado de resultados y el balance de situación para ver el diagnóstico de su empresa." })));
+    return;
+  }
+  const lista = (items, vacio) => items.length ? h("ul", { class: "diag-lista" }, items.map((x) => h("li", {}, chip(x.estado), h("span", { text: x.cliente })))) : h("p", { class: "muted-text", text: vacio });
+  rellenarEn(el,
+    h("div", { class: "diag-cabecera" },
+      h("div", { class: `diag-puntaje ${claseCalificacion(A.puntaje)}` },
+        h("strong", { text: A.puntaje == null ? "—" : String(A.puntaje) }), h("span", { text: "de 100" })),
+      h("div", {},
+        h("p", { class: "diag-calificacion", text: `Salud financiera: ${A.calificacion}` }),
+        h("div", { class: "diag-areas" }, A.areas.filter((a) => a.peso && a.puntaje != null).map((a) => h("span", { class: "diag-area" }, chip(a.estado), h("span", { text: a.nombre })))))),
+    A.sinFinancieros ? h("p", { class: "note", text: "Este diagnóstico usa solo su previsión de ventas. Complete el estado de resultados y el balance para un análisis más completo." }) : null,
+    h("div", { class: "plan-grid-2" },
+      h("div", { class: "plan-card" }, h("h4", { text: "Lo que va bien" }), lista(A.fortalezas.slice(0, 3), "Aún no hay suficientes datos para destacar fortalezas.")),
+      h("div", { class: "plan-card" }, h("h4", { text: "Lo que conviene mejorar" }), lista(A.mejoras.slice(0, 3), "No se encontraron puntos críticos con la información actual."))),
+    h("div", { class: "plan-card" }, h("h4", { text: "Recomendaciones" }),
+      h("ol", { class: "diag-recs" }, A.recomendaciones.slice(0, 3).map((r) => h("li", { text: r.cliente })))),
+    h("div", { class: "diag-cta" },
+      h("p", { text: "¿Quiere revisar este diagnóstico en detalle y armar un plan de acción?" }),
+      h("a", { class: "btn btn-small", href: "https://wa.me/50670123241?text=" + encodeURIComponent("Hola Luis, revisé el diagnóstico financiero de mi plan de negocios y quisiera coordinar una revisión."), target: "_blank", rel: "noopener", text: "Coordinar revisión con mi asesor" })),
+    h("p", { class: "note", text: "Diagnóstico automático y orientativo, calculado con los datos que usted ingresó. No sustituye la revisión de un profesional." }));
+}
+
+function pintarAnalisisAsesor(el) {
+  const A = calcular.analisis, M = calcular.modelo;
+  if (!A || !M) return;
+  const y0 = M.anos[0];
+  const fm = fmtMoneda;
+  const ingresos0 = A.usaResultados ? y0.res.ventasNetas : y0.ventas.ingresos;
+  const alertas = A.hallazgos.filter((x) => x.estado === "alerta");
+  const atenciones = A.hallazgos.filter((x) => x.estado === "atencion");
+  const fortalezas = A.hallazgos.filter((x) => x.estado === "fortaleza");
+  const valor = (id) => A.hallazgos.find((x) => x.id === id)?.valor;
+
+  const resumen = [
+    A.puntaje == null ? "Aún no hay datos financieros suficientes para calcular el puntaje." : `Puntaje de salud financiera: ${A.puntaje}/100 (${A.calificacion}).`,
+    ingresos0 ? `Ingresos de ${etiquetaAno(0)}: ${fm(ingresos0)}${valor("crecimiento") ? `, con crecimiento anual promedio de ${valor("crecimiento")}` : ""}.` : "",
+    valor("margenNeto") ? `Margen neto: ${valor("margenNeto")}.` : valor("margenBruto") ? `Margen bruto: ${valor("margenBruto")}.` : "",
+    valor("razonCorriente") ? `Razón corriente: ${valor("razonCorriente")}.` : "",
+    valor("endeudamiento") ? `Endeudamiento: ${valor("endeudamiento")}.` : "",
+    valor("dscr") ? `Cobertura del servicio de deuda: ${valor("dscr")}.` : "",
+    `${fortalezas.length} fortalezas, ${atenciones.length} puntos de atención y ${alertas.length} alertas.`,
+    alertas.length ? `Prioridades: ${alertas.slice(0, 3).map((x) => x.titulo.toLowerCase()).join("; ")}.` : "",
+    A.usaResultados ? "" : "La rentabilidad del año 1 se calculó con la previsión de ventas porque el estado de resultados de ese año está vacío.",
+  ].filter(Boolean).join(" ");
+
+  const claves = [
+    ["Ingresos", ingresos0 ? fm(ingresos0) : "—"],
+    ["Utilidad bruta", A.usaResultados ? fm(y0.res.utilidadBruta) : fm(y0.ventas.utilidadBruta || 0)],
+    ["Resultado neto", A.usaResultados ? fm(y0.res.neto) : "—"],
+    ["EBITDA", Number.isFinite(M.clave.ebitda) ? fm(M.clave.ebitda) : "—"],
+    ["Punto de equilibrio anual", Number.isFinite(M.clave.puntoEquilibrio) ? fm(M.clave.puntoEquilibrio) : "—"],
+    ["Margen de seguridad", Number.isFinite(M.clave.margenSeguridad) ? fmtPct(M.clave.margenSeguridad) : "—"],
+    ["Ciclo de conversión de efectivo", Number.isFinite(M.clave.ciclo) ? `${Math.round(M.clave.ciclo)} días` : "—"],
+    ["Cobertura del servicio de deuda", Number.isFinite(M.clave.dscr) ? fmtRazon(M.clave.dscr) : "—"],
+    ["Efectivo al cierre del año 1", y0.flujo.tieneDatos ? fm(y0.flujo.final) : "—"],
+  ];
+  const sinDatos = visibles().filter((s) => s.raices.length && !s.raices.some((r) => tieneDatos(leer(r)))).map((s) => s.titulo);
+
+  rellenarEn(el,
+    h("div", { class: "callout diag-privado" }, h("p", { text: "Solo usted ve esta sección. El cliente ve únicamente el diagnóstico breve." })),
+    h("h4", { text: "Resumen ejecutivo" }), h("p", { class: "diag-resumen", text: resumen }),
+    h("div", { class: "plan-grid-2" },
+      h("div", {}, h("h4", { text: `Datos clave · ${etiquetaAno(0)}` }),
+        h("div", { class: "table-wrap" }, h("table", { class: "plan-table" }, h("tbody", {}, claves.map(([k, v]) => h("tr", {}, h("th", { scope: "row", text: k }), h("td", { class: "num", text: v }))))))),
+      h("div", {}, h("h4", { text: "Puntaje por área" }),
+        h("div", { class: "table-wrap" }, h("table", { class: "plan-table" },
+          h("tbody", {}, A.areas.map((a) => h("tr", {}, h("th", { scope: "row", text: a.nombre }),
+            h("td", { class: "num", text: a.puntaje == null ? (a.hallazgos.length ? "—" : a.peso ? "Sin datos" : "Sin observaciones") : `${a.puntaje}/100` }),
+            h("td", {}, a.estado ? chip(a.estado) : a.hallazgos.length ? chip(a.hallazgos.some((x) => x.estado === "alerta") ? "alerta" : "atencion", `${a.hallazgos.length} observación(es)`) : null)))))))),
+    h("h4", { text: "Hallazgos por área" }),
+    A.areas.filter((a) => a.hallazgos.length).map((a) => h("details", { class: "diag-area-detalle", open: a.hallazgos.some((x) => x.estado !== "fortaleza") },
+      h("summary", {}, h("span", { text: a.nombre }), h("span", { class: "muted-small", text: `${a.hallazgos.length} hallazgo(s)` })),
+      a.hallazgos.map((x) => h("div", { class: `diag-hallazgo ${x.estado}` },
+        h("div", { class: "diag-hallazgo-cab" }, chip(x.estado), h("strong", { text: x.titulo }), h("span", { class: "diag-valor", text: String(x.valor ?? "") })),
+        h("p", { text: x.asesor }),
+        x.cliente ? h("p", { class: "muted-small", text: `El cliente ve: «${x.cliente}»` }) : null,
+        x.preguntas?.length ? h("ul", { class: "diag-preguntas" }, x.preguntas.map((q) => h("li", { text: q }))) : null)))),
+    h("h4", { text: "Recomendaciones detalladas" }),
+    h("ol", { class: "diag-recs" }, A.recomendaciones.map((r) => h("li", { text: r.asesor }))),
+    h("h4", { text: "Guía para la reunión con el cliente" }),
+    A.preguntas.length ? h("ol", { class: "diag-recs" }, A.preguntas.slice(0, 10).map((q) => h("li", { text: q }))) : h("p", { class: "muted-text", text: "Sin preguntas pendientes." }),
+    sinDatos.length ? [h("h4", { text: "Información que falta solicitar" }), h("p", { text: sinDatos.join(", ") + "." })] : null,
+    h("details", { class: "diag-area-detalle" }, h("summary", {}, h("span", { text: "Metodología y fuentes" })),
+      h("ul", {}, [
+        "Razones de liquidez, endeudamiento, rentabilidad y eficiencia: Corporate Finance Institute (CFI), Financial Ratios Definitive Guide.",
+        "Ciclo de conversión de efectivo (días de cobro + días de inventario − días de pago): CFA Institute.",
+        "Cobertura del servicio de deuda: las entidades financieras suelen exigir 1,25 veces o más para crédito a pymes.",
+        "Crecimiento real: comparado con la meta de inflación del BCCR (3 % ± 1 punto porcentual).",
+        "Punto de equilibrio y margen de seguridad: gastos de operación tratados como fijos y margen bruto como margen de contribución.",
+        "Los rangos de referencia son generales; ajústelos según la actividad y el tamaño de la empresa.",
+      ].map((t) => h("li", { text: t })))));
+}
+
 // ---------------------------------------------------------------- Cálculos
 
 const S = {}; // salidas calculadas: clave → texto
 function calcular() {
   for (const k in S) delete S[k];
   const n = nProductos();
+  // Modelo numérico para el análisis financiero.
+  const modelo = {
+    anos: ANOS.map(() => ({ ventas: { porProducto: [], mesesIngreso: Array(12).fill(0) }, res: {}, bal: {}, flujo: {} })),
+    fmt: fmtMoneda, mes: etiquetaMes, ano: etiquetaAno, simbolo: moneda() === "USD" ? "$" : "₡", clave: {},
+  };
 
   // Ventas
   const ingresosProducto = ANOS.map(() => []);
@@ -460,6 +584,8 @@ function calcular() {
       const unidades = sumar(meses), ingresos = unidades * precio, utilidad = unidades * (precio - costo);
       unidadesTotal += unidades; ingresosTotal += ingresos; utilidadTotal += utilidad;
       ingresosProducto[y][p] = ingresos;
+      modelo.anos[y].ventas.porProducto.push({ nombre: nombreProducto(p), ingresos, utilidad, precio, costo, unidades });
+      meses.forEach((u, m) => (modelo.anos[y].ventas.mesesIngreso[m] += u * precio));
       S[`v.${y}.margen.${p}`] = fmtMoneda(precio - costo);
       S[`v.${y}.unidades.${p}`] = fmtNum(unidades);
       S[`v.${y}.ingresos.${p}`] = fmtMoneda(ingresos);
@@ -470,6 +596,7 @@ function calcular() {
     S[`v.${y}.ingresosTotal`] = fmtMoneda(ingresosTotal);
     S[`v.${y}.utilidadTotal`] = fmtMoneda(utilidadTotal);
     S[`v.${y}.margenTotal`] = fmtPct(div(utilidadTotal, ingresosTotal));
+    Object.assign(modelo.anos[y].ventas, { ingresos: ingresosTotal, utilidadBruta: utilidadTotal, unidades: unidadesTotal });
     return { unidadesTotal, ingresosTotal, utilidadTotal };
   });
   ANOS.forEach((y) => {
@@ -492,6 +619,7 @@ function calcular() {
   S["f.mensaje"] = !fuentes && !usos ? "" : fuentes === usos ? "Las fuentes cubren exactamente los usos."
     : fuentes > usos ? "Las fuentes superan los usos: tiene un margen disponible." : "Los usos superan las fuentes: falta financiamiento.";
   S["f.mensaje.clase"] = fuentes >= usos ? "ok" : "warn";
+  modelo.financiero = { fuentes, usos };
 
   // Balance (cuentas fijas + cuentas agregadas)
   ANOS.forEach((y) => {
@@ -510,6 +638,12 @@ function calcular() {
     S[`b.razon.capitalTrabajo.${y}`] = activos || pasivos ? fmtMoneda(t.ac - t.pc) : "—";
     S[`b.razon.apalancamiento.${y}`] = fmtRazon(div(activos, pat));
     S[`b.razon.deudaPatrimonio.${y}`] = fmtRazon(div(pasivos, pat));
+    const bk = (k) => num(`balance.${k}.${y}`);
+    modelo.anos[y].bal = {
+      ...t, activos, pasivos, efectivo: bk("efectivo"), cxc: bk("cxc"), inventario: bk("inventario"), proveedores: bk("proveedores"),
+      prestCorto: bk("prestCorto"), porcionCorriente: bk("porcionCorriente"),
+      tieneDatos: Boolean(activos || pasivos || pat), cuadra: Math.abs(dif) < 0.5, dif,
+    };
   });
 
   // Flujo de caja (el efectivo inicial de los años 2 y 3 es el final del año anterior)
@@ -521,10 +655,12 @@ function calcular() {
       return t;
     });
     const neto = sumar(tot);
+    modelo.anos[y].flujo = { operacion: tot[0], inversion: tot[1], financiamiento: tot[2], neto, tieneDatos: tot.some(Boolean), utilidadNeta: num(`flujo.utilidadNeta.${y}`) };
     if (y > 0) S[`flujo.efectivoInicial.${y}`] = fmtMoneda(efectivo);
     S[`fc.neto.${y}`] = fmtMoneda(neto);
     efectivo += neto;
     S[`fc.final.${y}`] = fmtMoneda(efectivo);
+    modelo.anos[y].flujo.final = efectivo;
   });
 
   // Estado de resultados
@@ -546,7 +682,30 @@ function calcular() {
       .forEach(([k, v]) => (S[`r.${k}.${y}`] = fmtMoneda(v)));
     S[`r.margenBruto.${y}`] = fmtPct(div(utilidadBruta, ventasNetas));
     S[`r.margenNeto.${y}`] = fmtPct(div(neto, ventasNetas));
+    modelo.anos[y].res = {
+      ventasBrutas: r("ventasBrutas"), ventasNetas, costo, utilidadBruta, gastosVenta, gastosAdm, gastosOperacion: gastosVenta + gastosAdm,
+      antes, impuesto, neto, intereses: r("intereses"), depreciacion: r("depVenta") + r("depAdm"),
+      personal: r("sueldosVenta") + r("comisiones") + r("sueldosAdm") + r("cargas") + r("beneficios"),
+      tieneDatos: Boolean(ventasNetas || costo || gastosVenta || gastosAdm),
+    };
   });
+
+  // Información cualitativa para el análisis.
+  const conTexto = (ruta, campo) => (Array.isArray(leer(ruta)) ? leer(ruta).filter((x) => (x?.[campo] || "").trim()) : []);
+  const foda = Object.fromEntries(FODA.map(([k]) => [k, conTexto(`foda.${k}`, "texto")]));
+  modelo.cualitativo = {
+    foda: {
+      fortalezas: foda.fortalezas.length, debilidades: foda.debilidades.length, oportunidades: foda.oportunidades.length, amenazas: foda.amenazas.length,
+      total: Object.values(foda).reduce((t, a) => t + a.length, 0),
+      altas: Object.values(foda).flat().filter((x) => x.importancia === "Alta").length,
+    },
+    kpis: conTexto("calendario.kpis", "nombre").length,
+    competidores: conTexto("competencia.competidores", "nombre").length,
+    mercado: tieneDatos(leer("mercado")),
+    marketing: tieneDatos(leer("textos.marketing")),
+  };
+  calcular.modelo = modelo;
+  calcular.analisis = analizar(modelo);
 }
 
 function traerVentas() {
@@ -699,19 +858,24 @@ function pintarSalidas() {
   document.querySelectorAll("[data-mes]").forEach((el) => { const [y, m] = el.dataset.mes.split(".").map(Number); el.textContent = etiquetaMes(y, m); });
   pintarGraficos();
   pintarProgreso();
+  const dc = document.getElementById("diag-cliente");
+  if (dc) pintarDiagnosticoCliente(dc);
+  const da = document.getElementById("diag-asesor");
+  if (da) pintarAnalisisAsesor(da);
 }
 
 // Una sección cuenta como iniciada si tiene cualquier dato escrito.
 const tieneDatos = (v) => v != null && v !== "" && (typeof v !== "object" || Object.values(v).some(tieneDatos));
 function pintarProgreso() {
   let hechas = 0;
-  SECCIONES.forEach((s) => {
+  const conDatos = visibles().filter((s) => s.raices.length);
+  conDatos.forEach((s) => {
     const ok = s.raices.some((r) => tieneDatos(leer(r)));
     if (ok) hechas++;
     document.querySelector(`[data-nav="${s.id}"]`)?.classList.toggle("iniciada", ok);
   });
   const p = document.getElementById("plan-progreso");
-  if (p) p.textContent = `${hechas} de ${SECCIONES.length} secciones con datos`;
+  if (p) p.textContent = `${hechas} de ${conDatos.length} secciones con datos`;
 }
 
 function mostrarSeccion(id) {
@@ -724,15 +888,16 @@ function mostrarSeccion(id) {
 }
 
 function construirSeccion(s) {
-  const i = SECCIONES.indexOf(s);
+  const lista = visibles();
+  const i = lista.indexOf(s);
   const el = h("section", { class: "plan-seccion", "data-seccion": s.id, hidden: estado.seccion !== s.id, "aria-labelledby": `titulo-${s.id}` },
-    h("p", { class: "eyebrow eyebrow-accent", text: `${s.grupo} · ${i + 1} de ${SECCIONES.length}` }),
+    h("p", { class: "eyebrow eyebrow-accent", text: `${s.grupo} · ${i + 1} de ${lista.length}` }),
     h("h3", { class: "plan-titulo", id: `titulo-${s.id}`, text: s.titulo }),
     h("p", { class: "plan-ayuda", text: s.ayuda }),
     ...s.construir(),
     h("div", { class: "plan-pasos" },
-      i > 0 ? h("button", { type: "button", class: "btn btn-outline btn-small", onclick: () => { mostrarSeccion(SECCIONES[i - 1].id); scrollArriba(); }, text: `‹ ${SECCIONES[i - 1].titulo}` }) : h("span"),
-      i < SECCIONES.length - 1 ? h("button", { type: "button", class: "btn btn-small", onclick: () => { mostrarSeccion(SECCIONES[i + 1].id); scrollArriba(); }, text: `${SECCIONES[i + 1].titulo} ›` }) : h("span")));
+      i > 0 ? h("button", { type: "button", class: "btn btn-outline btn-small", onclick: () => { mostrarSeccion(lista[i - 1].id); scrollArriba(); }, text: `‹ ${lista[i - 1].titulo}` }) : h("span"),
+      i < lista.length - 1 ? h("button", { type: "button", class: "btn btn-small", onclick: () => { mostrarSeccion(lista[i + 1].id); scrollArriba(); }, text: `${lista[i + 1].titulo} ›` }) : h("span")));
   // Valores guardados en los campos.
   el.querySelectorAll("[data-ruta]").forEach((campo) => {
     const v = leer(campo.dataset.ruta);
@@ -746,7 +911,7 @@ function construirSeccion(s) {
 
 // Al agregar o quitar elementos, se vuelve a dibujar solo esa sección y se guarda.
 function cambioEstructura(idSeccion) {
-  const s = SECCIONES.find((x) => x.id === idSeccion);
+  const s = visibles().find((x) => x.id === idSeccion);
   const viejo = document.querySelector(`[data-seccion="${idSeccion}"]`);
   const foco = document.activeElement?.dataset?.ruta;
   viejo.replaceWith(construirSeccion(s));
@@ -757,16 +922,17 @@ function cambioEstructura(idSeccion) {
 function construir() {
   const nav = document.getElementById("plan-nav");
   const cont = document.getElementById("plan-secciones");
-  const grupos = [...new Set(SECCIONES.map((s) => s.grupo))];
+  const lista = visibles();
+  const grupos = [...new Set(lista.map((s) => s.grupo))];
   nav.replaceChildren(
     h("select", { id: "plan-nav-select", class: "plan-nav-select", "aria-label": "Sección", onchange: (e) => mostrarSeccion(e.target.value) },
-      SECCIONES.map((s, i) => h("option", { value: s.id, text: `${i + 1}. ${s.titulo}` }))),
+      lista.map((s, i) => h("option", { value: s.id, text: `${i + 1}. ${s.titulo}` }))),
     ...grupos.map((g) => h("div", { class: "plan-nav-grupo" }, h("p", { text: g }),
-      SECCIONES.filter((s) => s.grupo === g).map((s) => h("button", {
-        type: "button", "data-nav": s.id, onclick: () => mostrarSeccion(s.id),
-      }, h("span", { text: `${SECCIONES.indexOf(s) + 1}. ${s.titulo}` }))))),
+      lista.filter((s) => s.grupo === g).map((s) => h("button", {
+        type: "button", "data-nav": s.id, class: s.soloAsesor ? "solo-asesor" : null, onclick: () => mostrarSeccion(s.id),
+      }, h("span", { text: `${lista.indexOf(s) + 1}. ${s.titulo}` }))))),
     h("p", { class: "plan-progreso", id: "plan-progreso" }));
-  cont.replaceChildren(...SECCIONES.map(construirSeccion));
+  cont.replaceChildren(...lista.map(construirSeccion));
   mostrarSeccion(estado.seccion);
   pintarSalidas();
 }
@@ -842,6 +1008,8 @@ export function iniciarPlan({ sesion, auth, db, fs, esAsesor }) {
       return;
     }
     SOLO_LECTURA = ajeno;
+    VER_ANALISIS = esAsesor(usuario);
+    if (ajeno) estado.seccion = "analisis";
     alCambiarDatos = ajeno ? () => {} : () => { pintarSalidas(); programar(); };
     construir();
     document.getElementById("plan-espera").hidden = true;
