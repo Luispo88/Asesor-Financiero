@@ -664,3 +664,11 @@ details p { color: var(--muted); padding: 0 0 22px; margin: 0; }
   *, .js .reveal { transition: none !important; }
   .js .reveal { opacity: 1; transform: none; }
 }
+
+/* Guía de tarifas (Panel del asesor) */
+.tarifas-wrap { margin-top: 40px; background: var(--bg); border-radius: var(--radius); padding: 8px 24px; }
+.tarifas-table { min-width: 860px; }
+.tarifas-table td:nth-child(4) { color: var(--blue); }
+.tarifas-notas { margin-top: 40px; }
+.tarifas-notas ul { margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.5; }
+.tarifas-notas li { margin-bottom: 8px; }

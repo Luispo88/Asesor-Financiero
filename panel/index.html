@@ -74,6 +74,7 @@
             <h2 class="section-title member-hello">Clientes registrados.</h2>
           </div>
           <div class="member-actions">
+            <a class="btn btn-outline btn-small" href="#tarifas">Guía de tarifas</a>
             <button type="button" class="btn btn-outline btn-small" id="btn-actualizar">Actualizar</button>
             <button type="button" class="btn btn-small" id="btn-exportar">Exportar a Excel</button>
             <button type="button" class="btn btn-outline btn-small" id="btn-salir">Cerrar sesión</button>
@@ -114,6 +115,107 @@
         </div>
         <p class="note center" id="panel-vacio" hidden></p>
         <p class="note">La salud financiera se calcula con el plan de negocios de cada cliente (puntaje de 0 a 100); abra «Ver plan de negocios» para el análisis completo. El estado y las notas se guardan automáticamente al cambiarlos, y solo usted puede verlos. El teléfono abre WhatsApp y el correo abre su programa de correo.</p>
+      </div>
+    </section>
+    <section class="section section-alt" id="tarifas">
+      <div class="container container-wide">
+        <div class="section-head">
+          <p class="eyebrow eyebrow-accent">Solo para usted</p>
+          <h2 class="section-title">Guía de tarifas.</h2>
+          <p class="section-sub">Cuánto cobrar por cada servicio, a partir de sus costos y de las referencias del mercado. Son rangos de referencia: valídelos con sus primeros clientes.</p>
+        </div>
+
+        <div class="tool">
+          <form class="tool-form" id="form-tarifas" novalidate>
+            <label>Ingreso que quiere ganar al mes (₡)
+              <input type="number" name="meta" min="0" step="10000" value="1500000">
+            </label>
+            <label>Costos al mes (₡)
+              <input type="number" name="costos" min="0" step="10000" value="500000">
+              <span class="field-hint">CCSS como independiente, herramientas, publicidad, teléfono y transporte.</span>
+            </label>
+            <label>Horas cobrables al mes
+              <input type="number" name="horas" min="1" max="300" step="1" value="90">
+              <span class="field-hint">De unas 160 horas, solo una parte se puede cobrar; el resto es prospección, trámites y aprendizaje.</span>
+            </label>
+            <label>Su tarifa por hora (₡)
+              <input type="number" name="tarifa" min="0" step="1000" value="25000">
+              <span class="field-hint">Recomendado: entre ₡25 000 y ₡35 000 más IVA.</span>
+            </label>
+            <label class="check"><input type="checkbox" name="iva"> Mostrar precios con IVA (13 %)</label>
+          </form>
+          <div class="tool-result" aria-live="polite">
+            <div class="result-main">
+              <span>Tarifa mínima para no perder</span>
+              <strong id="tar-equilibrio">—</strong>
+            </div>
+            <dl class="result-list">
+              <div><dt>Debe facturar al mes (sin IVA)</dt><dd id="tar-facturar">—</dd></div>
+              <div><dt>Su tarifa frente al mínimo</dt><dd id="tar-margen">—</dd></div>
+              <div><dt>Clientes CFO Estándar para cubrir la meta</dt><dd id="tar-cfo">—</dd></div>
+            </dl>
+            <p class="tool-message" id="tar-mensaje"></p>
+          </div>
+        </div>
+
+        <div class="table-wrap tarifas-wrap">
+          <table class="ind-table tarifas-table">
+            <thead><tr><th>Servicio</th><th class="num">Horas</th><th class="num">Rango sugerido (+ IVA)</th><th class="num" id="tar-col">Con su tarifa</th><th>Forma de cobro</th></tr></thead>
+            <tbody id="tarifas-filas">
+                  <tr data-hmin="0.5" data-hmax="0.5" data-gratis><td><strong>Diagnóstico inicial</strong><br><span class="field-hint">Reunión de 30 minutos</span></td><td class="num">0,5</td><td class="num">Gratis</td><td class="num" data-tarifa-precio>—</td><td>Atrae clientes; ya está en el sitio</td></tr>
+                  <tr data-hmin="2" data-hmax="3"><td><strong>Capacidad de crédito</strong><br><span class="field-hint">Persona física</span></td><td class="num">2–3</td><td class="num">₡40 000 – ₡75 000</td><td class="num" data-tarifa-precio>—</td><td>Precio fijo</td></tr>
+                  <tr data-hmin="4" data-hmax="6"><td><strong>Consolidación de deudas</strong><br><span class="field-hint">Análisis y propuesta</span></td><td class="num">4–6</td><td class="num">₡80 000 – ₡150 000</td><td class="num" data-tarifa-precio>—</td><td>Fijo; bono opcional si se logra el ahorro</td></tr>
+                  <tr data-hmin="6" data-hmax="10"><td><strong>Crédito hipotecario</strong><br><span class="field-hint">Acompañamiento completo</span></td><td class="num">6–10</td><td class="num">₡150 000 – ₡300 000</td><td class="num" data-tarifa-precio>—</td><td>Fijo, o 50 % al inicio y 50 % al aprobarse</td></tr>
+                  <tr data-hmin="10" data-hmax="20"><td><strong>Financiamiento pyme</strong><br><span class="field-hint">Expediente, flujo y presentación al banco o al SBD</span></td><td class="num">10–20</td><td class="num">₡300 000 – ₡700 000</td><td class="num" data-tarifa-precio>—</td><td>50 % adelantado; opcional 0,5–1 % del crédito aprobado, con tope</td></tr>
+                  <tr data-hmin="2" data-hmax="4"><td><strong>Condición PYME ante el MEIC</strong><br><span class="field-hint">Orden de CCSS, Hacienda e INS</span></td><td class="num">2–4</td><td class="num">₡50 000 – ₡100 000</td><td class="num" data-tarifa-precio>—</td><td>Precio fijo; puerta de entrada al CFO externo</td></tr>
+                  <tr data-hmin="15" data-hmax="25"><td><strong>Plan de negocios</strong><br><span class="field-hint">Con la herramienta del área de clientes</span></td><td class="num">15–25</td><td class="num">₡350 000 – ₡800 000</td><td class="num" data-tarifa-precio>—</td><td>Por etapas</td></tr>
+                  <tr data-hmin="4" data-hmax="4" data-mensual><td><strong>CFO externo · Básico</strong><br><span class="field-hint">Revisión mensual de estados, puntaje de salud, 1 reunión</span></td><td class="num">4</td><td class="num">₡120 000 – ₡150 000 / mes</td><td class="num" data-tarifa-precio>—</td><td>Mensualidad, mínimo 3 meses</td></tr>
+                  <tr data-hmin="8" data-hmax="10" data-mensual><td><strong>CFO externo · Estándar</strong><br><span class="field-hint">Básico + flujo de caja, presupuesto, 2 reuniones</span></td><td class="num">8–10</td><td class="num">₡250 000 – ₡350 000 / mes</td><td class="num" data-tarifa-precio>—</td><td>Mensualidad</td></tr>
+                  <tr data-hmin="16" data-hmax="20" data-mensual><td><strong>CFO externo · Avanzado</strong><br><span class="field-hint">Estándar + relación con bancos, proyecciones, junta</span></td><td class="num">16–20</td><td class="num">₡500 000 – ₡700 000 / mes</td><td class="num" data-tarifa-precio>—</td><td>Mensualidad</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">«Con su tarifa» multiplica las horas por su tarifa y redondea a ₡5 000. En los planes de CFO externo es el precio por mes.</p>
+
+        <div class="cards cards-3 tarifas-notas">
+          <div class="card">
+            <span class="card-tag">Referencias del mercado</span>
+            <ul>
+              <li>Colegio de Contadores Privados: mínimo <strong>₡28 681 + IVA</strong> por hora profesional.</li>
+              <li>Contador externo para una pyme: <strong>₡80 000 a ₡400 000 o más</strong> al mes.</li>
+              <li>CFO de planta: <strong>$4 000 a $14 000</strong> al mes con cargas sociales. Es lo que usted reemplaza.</li>
+              <li>Salario mínimo de un licenciado en 2026: <strong>₡796 921</strong>.</li>
+              <li>Colegio de Ciencias Económicas: tarifas recomendadas desde 2021 (La Gaceta 108). Confirme el monto con el Colegio.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="card-tag">Por qué estos rangos</span>
+            <ul>
+              <li><strong>CFO externo:</strong> ingreso recurrente. Con 7 a 9 clientes en el plan Estándar cubre la meta, según su tarifa.</li>
+              <li><strong>Condición PYME:</strong> el trámite ante el MEIC es gratuito; cobre poco y úselo para llegar al CFO externo.</li>
+              <li><strong>Financiamiento y crédito hipotecario:</strong> su experiencia de crédito permite cobrar por valor, no solo por horas.</li>
+              <li>Empiece cerca de ₡25 000 por hora y suba hacia ₡35 000 cuando tenga demanda constante.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="card-tag">Precauciones</span>
+            <ul>
+              <li><strong>IVA del 13 %:</strong> inscríbase en Hacienda como independiente y emita factura electrónica.</li>
+              <li><strong>Conflicto de interés:</strong> si recibe comisiones de entidades, dígalo por escrito. Si trabaja en un banco, revise su contrato y el código de ética.</li>
+              <li><strong>Contrato y adelanto</strong> en los servicios por proyecto.</li>
+              <li>Publique precios «desde» y dé el precio final después del diagnóstico.</li>
+              <li>Cada 6 meses, o al llegar a 10 clientes, compare las horas reales y ajuste.</li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="note">Fuentes:
+          <a href="https://consultoresjimenez.com/cuanto-cobra-un-contador-en-costa-rica/" target="_blank" rel="noopener">Consultores Jiménez</a>,
+          <a href="https://facturasimple.com/cr/blog/cr-contador-cpa-costa-rica-cuanto-cuesta-cuando-necesitar-rol-empresa" target="_blank" rel="noopener">FacturaSimple</a>,
+          <a href="https://clarivo.co/es/blog/cuanto-cuesta-un-cfo-opciones-pymes" target="_blank" rel="noopener">Clarivo</a>,
+          <a href="https://ccpa.or.cr/tarifas-por-servicios-profesionales/" target="_blank" rel="noopener">Colegio de Contadores Públicos</a>,
+          <a href="https://aglegal.com/es/salario-minimo-costa-rica/" target="_blank" rel="noopener">AG Legal (salarios mínimos 2026)</a>.
+          Revisado en octubre de 2026.</p>
       </div>
     </section>
     </div>
@@ -169,5 +271,6 @@
 
   <script src="../js/main.js"></script>
   <script type="module" src="../js/auth.js"></script>
+  <script src="../js/tarifas.js"></script>
 </body>
 </html>
