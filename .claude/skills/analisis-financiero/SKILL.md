@@ -8,6 +8,14 @@ description: Cómo funciona y cómo modificar el análisis financiero por reglas
 Es un análisis **por reglas, sin inteligencia artificial**: mismos datos, mismo resultado.
 El usuario (el asesor) lo pidió así a propósito. No lo reemplace por llamadas a un modelo de lenguaje.
 
+**Decisión del usuario (octubre de 2026):** se mantienen las reglas. Se evaluó usar IA y se dejó
+para más adelante. Si se retoma, será solo como **apoyo para el asesor**, nunca hacia el cliente
+ni para calcular el puntaje: un botón "Generar borrador con IA" que redacte sobre los resultados
+ya calculados por las reglas y que el asesor revise antes de enviar. Antes hace falta que el
+usuario acepte el plan de pago de Firebase (servidor para proteger la clave de la IA) y que se
+agregue al registro el consentimiento para enviar datos a un proveedor de IA (Ley 8968).
+No lo implemente sin que el usuario lo pida.
+
 ## Flujo de datos
 
 1. `js/plan.js` → `calcular()` arma el **modelo** `M` con los datos del cliente: `M.anos[0..2]` con `ventas`, `res` (estado de resultados), `bal` (balance) y `flujo`; además `M.financiero`, `M.cualitativo` (FODA, KPI, mercado, competencia, mercadeo), y los ayudantes `M.fmt`, `M.simbolo`, `M.mes`, `M.ano`. Los resultados clave se guardan en `M.clave`.
