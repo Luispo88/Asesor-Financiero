@@ -12,7 +12,7 @@ skill **probar-sitio** (la prueba de la guía de tarifas espera IVA del 13 % y u
 
 | Cifra | Valor en el sitio | Revisado | Dónde está | Fuente oficial |
 |---|---|---|---|---|
-| Tramos del impuesto sobre la renta al salario (mensual) | Exento hasta ₡918 000; 10 % hasta ₡1 347 000; 15 % hasta ₡2 364 000; 20 % hasta ₡4 727 000; 25 % sobre el exceso. **Período 2025**: falta confirmar los de 2026 (Decreto 45333-H). | 2025 | `js/main.js`, constante `RENTA_SALARIO` (cambie también `periodo`) | Ministerio de Hacienda, La Gaceta |
+| Tramos del impuesto sobre la renta al salario (mensual) | **Período 2026** (Decreto 45333-H, La Gaceta 229 del 5 de diciembre de 2025): exento hasta ₡918 000; 10 % hasta ₡1 347 000; 15 % hasta ₡2 364 000; 20 % hasta ₡4 727 000; 25 % sobre el exceso. No se aplican los créditos fiscales por hijos o cónyuge. Referencia: en 2025 eran ₡922 000 / ₡1 352 000 / ₡2 373 000 / ₡4 745 000 (Decreto 44772-H). Los de 2027 se publican hacia diciembre de 2026. | oct. 2026 | `js/main.js`, constante `RENTA_SALARIO` (cambie también `periodo`) | Ministerio de Hacienda, La Gaceta |
 | Cargas sociales del trabajador | 10,83 % = SEM 5,50 % + IVM 4,33 % + Banco Popular 1,00 % | 2025 | `index.html`, campo `cargas` de la calculadora de capacidad y su texto de ayuda | CCSS |
 | Impuesto sobre la renta de personas jurídicas | 30 % general; tarifas reducidas para pymes con ingresos brutos bajo el límite de Hacienda | 2025 | `js/plan.js` (texto de ayuda de `resultados.tasaRenta` y valor por omisión) | Hacienda |
 | IVA de servicios profesionales | 13 % | 2026 | `js/tarifas.js` (`IVA`), textos de `tarifas_seccion()` en `herramientas/construir.py` | Hacienda |

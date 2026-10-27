@@ -119,6 +119,14 @@ seccion("Calculadoras");
   revisar(/\d/.test(await p.textContent("#cap-monto-max")), "la capacidad de endeudamiento muestra un monto");
   revisar(/\d/.test(await p.textContent("#cap-cargas")), "se rebajan las cargas sociales");
   revisar(/\d/.test(await p.textContent("#cap-renta")), "se rebaja el impuesto sobre la renta");
+  // Tramos 2026: (1 347 000 − 918 000) × 10 % + (1 500 000 − 1 347 000) × 15 % = 65 850.
+  await p.selectOption("#form-capacidad [name=moneda]", "CRC");
+  await p.selectOption("#form-capacidad [name=tipo]", "asalariado");
+  await p.check("#form-capacidad [name=renta]");
+  await p.fill("#form-capacidad [name=ingreso]", "1500000");
+  const renta = await p.textContent("#cap-renta");
+  revisar(renta.replace(/\D/g, "") === "65850", `impuesto de un salario de ₡1 500 000 con tramos 2026 = ₡65 850 (obtenido: ${renta})`);
+  revisar(/Tramos mensuales 2026/.test(await p.textContent("#cap-renta-hint")), "la calculadora indica los tramos de 2026");
   revisar(p.errores.length === 0, "calculadoras sin errores: " + p.errores.join(" | "));
   await ctx.close();
 }

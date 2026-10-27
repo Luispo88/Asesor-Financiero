@@ -99,8 +99,9 @@ if (formCuota) {
 
 // Tramos mensuales del impuesto sobre la renta al salario, en colones. Hacienda los
 // actualiza cada año por decreto: al cambiar, edite solo esta tabla.
+// Período 2026: Decreto Ejecutivo 45333-H, La Gaceta 229 del 5 de diciembre de 2025.
 const RENTA_SALARIO = {
-  periodo: "2025",
+  periodo: "2026",
   tramos: [
     { hasta: 918000, tasa: 0 },
     { hasta: 1347000, tasa: 0.10 },
