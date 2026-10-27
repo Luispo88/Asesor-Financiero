@@ -244,6 +244,69 @@ seccion("Panel del asesor");
   await ctx.close();
 }
 
+// 6. Seguridad: revisión del código y ataques simulados (ver el skill "seguridad").
+seccion("Seguridad");
+{
+  const leer = (f) => readFileSync(join(RAIZ, f), "utf8");
+  const archivos = (dir, ext) => readdirSync(join(RAIZ, dir)).filter((f) => f.endsWith(ext)).map((f) => `${dir}/${f}`);
+  const js = archivos("js", ".js");
+  const html = ["index.html", ...["servicios", "blog", "cuenta", "clientes", "panel"].flatMap((d) => archivos(d, ".html"))];
+
+  // Datos como texto, nunca como HTML ni como código.
+  for (const f of js) {
+    const peligro = leer(f).match(/\b(innerHTML|outerHTML|insertAdjacentHTML|srcdoc)\b|document\.write|\beval\(|new Function\(|setTimeout\(\s*[\"'`]/);
+    revisar(!peligro, `${f} no inserta HTML ni ejecuta texto como código${peligro ? ` (encontrado: ${peligro[0]})` : ""}`);
+  }
+  // Enlaces externos que abren pestaña nueva, protegidos con noopener.
+  for (const f of html) {
+    const malos = (leer(f).match(/<a [^>]*target="_blank"[^>]*>/g) || []).filter((a) => !/noopener/.test(a));
+    revisar(malos.length === 0, `${f}: enlaces con target="_blank" llevan rel="noopener"`);
+  }
+  for (const f of js) {
+    const malos = (leer(f).match(/target: "_blank"[^)]*/g) || []).filter((a) => !/noopener/.test(a));
+    revisar(malos.length === 0, `${f}: enlaces con target "_blank" llevan rel "noopener"`);
+  }
+  // Scripts externos: solo el SDK de Firebase, con versión fija.
+  for (const f of html) revisar(!/<script[^>]+src="https?:/.test(leer(f)), `${f} no carga scripts de otros sitios`);
+  const sdks = js.flatMap((f) => leer(f).match(/https:\/\/www\.gstatic\.com\/firebasejs\/[^"`]*/g) || []);
+  revisar(sdks.length > 0 && sdks.every((u) => /firebasejs\/\d+\.\d+\.\d+$/.test(u)), "el SDK de Firebase se carga con versión fija");
+
+  // Sin claves privadas en el repositorio (la apiKey web de Firebase es pública por diseño).
+  const todos = [...js, ...html, "firestore.rules", "README.md", "herramientas/construir.py"];
+  const secreto = /-----BEGIN [A-Z ]*PRIVATE KEY-----|"private_key"|service_account|\bsk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}/;
+  revisar(todos.every((f) => !secreto.test(leer(f))), "no hay claves privadas ni credenciales de servicio en el código");
+
+  // Reglas de Firestore: cerradas por defecto, asesor con correo verificado, sin borrados.
+  const reglas = leer("firestore.rules");
+  revisar(!/allow\s+[a-z, ]+:\s*if\s+true/.test(reglas) && !/if\s+request\.auth\s*!=\s*null\s*;/.test(reglas), "las reglas no dejan datos abiertos a cualquier usuario");
+  revisar(/email_verified\s*==\s*true/.test(reglas), "el asesor necesita el correo verificado");
+  revisar((reglas.match(/allow delete: if false/g) || []).length === 2, "nadie puede borrar perfiles ni planes");
+  revisar(/match \/seguimiento\/\{uid\} \{\s*allow read, write: if esAsesor\(\);\s*\}/.test(reglas), "el seguimiento solo lo ve el asesor");
+  const correoReglas = reglas.match(/email == '([^']+)'/)?.[1];
+  revisar(leer("js/firebase-config.js").includes(`["${correoReglas}"]`), "el correo del asesor coincide en las reglas y en la configuración");
+  // Páginas privadas fuera de los buscadores.
+  for (const f of ["clientes/index.html", "clientes/plan.html", "panel/index.html"])
+    revisar(/<meta name="robots" content="noindex/.test(leer(f)), `${f} no se indexa en buscadores`);
+
+  // Ataques simulados: un cliente registra datos maliciosos y el asesor abre el panel.
+  const { ctx, p } = await contexto();
+  const malicioso = '<img src=x onerror="window.__xss=1">';
+  await sembrar(p, { usuarios: asesor, sesion: { uid: "adm", email: ASESOR }, docs: {
+    "usuarios/x1": { nombre: malicioso, empresa: "=HYPERLINK(\"http://ejemplo.com\")", correo: "x@e.com", telefono: "88887777", sector: "<script>window.__xss=1</script>", creado: "ts" },
+    "planes/x1": { json: JSON.stringify({ ...SANA, ventas: { ...SANA.ventas, productos: [malicioso, "Repostería", "Café"] } }), actualizado: "ts" },
+  } });
+  await p.goto(B + "panel/index.html"); await p.waitForSelector("#panel-contenido:not([hidden])");
+  revisar(await p.evaluate(() => window.__xss === undefined && !document.querySelector("#panel-filas img, #panel-filas script")), "el panel muestra los datos del cliente como texto (sin ejecutar código)");
+  revisar((await p.textContent("#panel-filas")).includes(malicioso), "el nombre malicioso se ve literalmente");
+  const [descarga] = await Promise.all([p.waitForEvent("download"), p.click("#btn-exportar")]);
+  revisar(readFileSync(await descarga.path(), "utf8").includes("'=HYPERLINK"), "la exportación neutraliza fórmulas de Excel");
+  await p.goto(B + "clientes/plan.html?cliente=x1"); await p.waitForSelector("#plan-app:not([hidden])");
+  await p.waitForTimeout(300);
+  revisar(await p.evaluate(() => window.__xss === undefined && !document.querySelector("#plan-secciones img[src='x']")), "el plan y el análisis muestran los datos del cliente como texto");
+  revisar(p.errores.length === 0, "ataques simulados sin errores: " + p.errores.join(" | "));
+  await ctx.close();
+}
+
 await navegador.close();
 servidor.close();
 console.log(`\n${total - fallas.length} de ${total} pruebas pasaron.`);

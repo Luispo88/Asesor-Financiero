@@ -41,12 +41,15 @@
       const est = document.getElementById(`est-${id}`);
       if (!Number.isFinite(valor)) {
         celda.textContent = "—";
-        est.innerHTML = "";
+        est.replaceChildren();
         continue;
       }
       const clave = estado(valor);
       celda.textContent = formato(valor);
-      est.innerHTML = `<span class="semaforo ${clave}">${ETIQUETAS[clave]}</span>`;
+      const chip = document.createElement("span");
+      chip.className = `semaforo ${clave}`;
+      chip.textContent = ETIQUETAS[clave];
+      est.replaceChildren(chip);
     }
   }
 

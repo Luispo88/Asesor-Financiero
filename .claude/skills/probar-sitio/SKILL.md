@@ -21,6 +21,7 @@ archivos de `herramientas/pruebas/mock/` (no toca la base de datos real). Termin
 3. Registro de un cliente, área de clientes, plan de negocios (agregar productos, cálculos, guardado y recarga) y que el cliente no entre al panel ni vea el análisis del asesor.
 4. Análisis financiero de una empresa sana y una en riesgo, sin valores rotos (`null`, `NaN`, `[object …]`), y el plan en solo lectura para el asesor.
 5. Panel del asesor: conteos, salud financiera y orden, exportación a Excel, guía de tarifas y vista de celular.
+6. Seguridad: revisión del código (inyección de HTML, enlaces externos, scripts de terceros, claves privadas, reglas de Firestore, páginas privadas sin indexar) y ataques simulados con datos maliciosos en el panel, el plan y la exportación (vea el skill **seguridad**).
 
 ## Al agregar una función
 
