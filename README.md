@@ -38,6 +38,9 @@ js/firebase-config.js  Datos del proyecto de Firebase (se completan al configura
 js/indicadores.js Indicadores financieros del Área de clientes
 js/plan.js        Plan de negocios: secciones, cálculos, gráficos y guardado
 js/analisis.js    Análisis financiero: reglas, rangos de referencia y recomendaciones
+js/tarifas.js     Guía de tarifas del Panel del asesor
+herramientas/     Generador de páginas (construir.py) y pruebas en el navegador (pruebas/)
+.claude/skills/   Instrucciones para Claude: construir, probar y cifras de Costa Rica
 cuenta/           Página de acceso: iniciar sesión y crear cuenta
 clientes/         Área de clientes (requiere sesión)
 panel/            Panel del asesor (solo la cuenta del asesor)
@@ -71,11 +74,22 @@ Mientras `js/firebase-config.js` esté vacío, las páginas de acceso muestran u
 
 **Sobre la privacidad del contenido:** el inicio de sesión controla quién entra al Área de clientes, pero el texto de esa página está en el sitio público, de modo que alguien con conocimientos técnicos podría leerlo. Es adecuado para contenido educativo. Los datos de cada cliente (su perfil) sí quedan protegidos por las reglas de Firestore. Cuando los clientes compartan información financiera propia, debe guardarse en Firestore, nunca en las páginas.
 
+## Modificar y probar el sitio
+
+Las páginas de `servicios/`, `blog/`, `cuenta/`, `clientes/` y `panel/`, y `sitemap.xml`, se generan con `herramientas/construir.py`: cambie el texto ahí y regenere. `index.html` se edita a mano.
+
+```bash
+python3 herramientas/construir.py     # regenera las páginas
+node herramientas/pruebas/probar.mjs  # pruebas en el navegador (requiere Playwright)
+```
+
+Las pruebas usan un Firebase simulado y no tocan la base de datos real. Claude sigue estas mismas instrucciones gracias a los skills de `.claude/skills/`.
+
 ## Agregar un artículo al blog
 
-1. Copie uno de los archivos de `blog/` con un nombre nuevo (por ejemplo, `blog/mi-articulo.html`).
-2. Cambie el título, la descripción y el contenido dentro de `<article class="prose">`.
-3. Agregue una tarjeta con el enlace en `blog/index.html` (y, si quiere, en la sección "Del blog" de `index.html`).
+1. Agregue el artículo a la lista `ARTICULOS` de `herramientas/construir.py` (título, descripción y contenido), siguiendo los que ya existen.
+2. Regenere con `python3 herramientas/construir.py`: se crean la página y su tarjeta en `blog/index.html`, y se actualiza el sitemap.
+3. Si quiere, agregue una tarjeta en la sección "Del blog" de `index.html`.
 
 Revise los textos legales del pie de página y de las preguntas frecuentes con su asesor legal.
 
