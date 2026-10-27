@@ -40,7 +40,7 @@ js/plan.js        Plan de negocios: secciones, cálculos, gráficos y guardado
 js/analisis.js    Análisis financiero: reglas, rangos de referencia y recomendaciones
 js/tarifas.js     Guía de tarifas del Panel del asesor
 herramientas/     Generador de páginas (construir.py) y pruebas en el navegador (pruebas/)
-.claude/skills/   Instrucciones para Claude: construir, probar y cifras de Costa Rica
+.claude/skills/   Instrucciones para Claude: construir, probar, cifras de Costa Rica, estilo y análisis financiero
 cuenta/           Página de acceso: iniciar sesión y crear cuenta
 clientes/         Área de clientes (requiere sesión)
 panel/            Panel del asesor (solo la cuenta del asesor)
