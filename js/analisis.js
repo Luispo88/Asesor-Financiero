@@ -10,9 +10,54 @@
 //   financieras para crédito a pymes.
 // - Crecimiento real: meta de inflación del BCCR, 3 % ± 1 punto porcentual.
 // - Punto de equilibrio y margen de seguridad: contabilidad gerencial (margen de contribución).
+// - Rangos por actividad (SECTORES): márgenes, liquidez y días de capital de trabajo cambian
+//   mucho entre un comercio, un restaurante o una constructora. Se basan en referencias para
+//   pequeñas empresas (Crestmont Capital y BizMiner, 2026: razón corriente, márgenes netos y
+//   brutos por sector), en Damodaran (NYU Stern, enero de 2026: márgenes por industria de
+//   empresas que cotizan en EE. UU., como techo de referencia) y en la rotación de inventario
+//   por industria (OnRamp Funds, 2026), ajustados a la escala de una pyme. Son orientativos.
 
 const INFLACION_META = 0.03;
 const PESO_ESTADO = { fortaleza: 100, atencion: 55, alerta: 15 };
+
+// Referencias por actividad. Cada par es [sano, alerta]; "planilla" es el peso de la planilla
+// sobre las ventas a partir del cual se marca atención. "general" es la referencia por omisión.
+export const SECTORES = {
+  general: {
+    nombre: "General", mb: 0.30, mo: [0.10, 0.03], mn: [0.08, 0.02], rc: [1.5, 1], pa: [1, 0.7],
+    cobro: [45, 90], inventario: [60, 120], ciclo: [60, 120], planilla: 0.40,
+  },
+  comercio: {
+    nombre: "Comercio (tiendas, distribución)", mb: 0.25, mo: [0.05, 0.015], mn: [0.04, 0.01], rc: [1.5, 1], pa: [0.5, 0.3],
+    cobro: [30, 60], inventario: [60, 120], ciclo: [45, 90], planilla: 0.20,
+    nota: "Margen bajo y alta rotación: el comercio gana por volumen. Mucho activo corriente es inventario, por eso la prueba ácida sana es menor.",
+  },
+  restaurante: {
+    nombre: "Restaurantes, sodas y cafeterías", mb: 0.60, mo: [0.08, 0.03], mn: [0.06, 0.02], rc: [1, 0.7], pa: [0.7, 0.4],
+    cobro: [10, 30], inventario: [10, 20], ciclo: [10, 30], planilla: 0.38,
+    nota: "Cobra de contado y paga a proveedores a plazo, por eso opera sano con una razón corriente cercana a 1. El costo de alimentos ronda 30–35 % de las ventas y la planilla 30–35 %; el inventario es perecedero.",
+  },
+  servicios: {
+    nombre: "Servicios profesionales y técnicos", mb: 0.50, mo: [0.15, 0.05], mn: [0.10, 0.03], rc: [1.5, 1], pa: [1.2, 0.8],
+    cobro: [45, 90], inventario: [30, 60], ciclo: [45, 90], planilla: 0.55,
+    nota: "Casi no maneja inventario y su principal costo es el personal, por eso la planilla pesa más. Los márgenes deben ser mayores que en comercio.",
+  },
+  manufactura: {
+    nombre: "Manufactura e industria", mb: 0.30, mo: [0.08, 0.03], mn: [0.06, 0.02], rc: [1.5, 1.1], pa: [0.8, 0.5],
+    cobro: [60, 90], inventario: [90, 150], ciclo: [90, 150], planilla: 0.35,
+    nota: "Mantiene materia prima, producto en proceso y terminado: los días de inventario y el ciclo de efectivo son naturalmente más largos.",
+  },
+  construccion: {
+    nombre: "Construcción y contratistas", mb: 0.20, mo: [0.06, 0.02], mn: [0.04, 0.015], rc: [1.3, 1], pa: [1, 0.7],
+    cobro: [60, 90], inventario: [45, 90], ciclo: [60, 120], planilla: 0.40,
+    nota: "Márgenes estrechos y cobro por avance de obra: el riesgo está en los atrasos de pago y en los sobrecostos.",
+  },
+  agropecuario: {
+    nombre: "Agropecuario", mb: 0.25, mo: [0.08, 0.02], mn: [0.05, 0.01], rc: [1.5, 1.1], pa: [0.8, 0.5],
+    cobro: [45, 90], inventario: [120, 240], ciclo: [120, 240], planilla: 0.40,
+    nota: "Ciclos de cosecha o engorde largos y ventas concentradas en ciertos meses: necesita más capital de trabajo y reservas de efectivo.",
+  },
+};
 export const AREAS = [
   { id: "ventas", nombre: "Ventas y crecimiento", peso: 15 },
   { id: "rentabilidad", nombre: "Rentabilidad", peso: 25 },
@@ -102,6 +147,9 @@ export function analizar(M) {
   };
   const y0 = M.anos[0], y1 = M.anos[1], y2 = M.anos[2];
   const fm = M.fmt; // formateador de moneda
+  const sectorId = SECTORES[M.sector] ? M.sector : "general";
+  const R = SECTORES[sectorId];
+  const ref = sectorId === "general" ? "Referencia general" : `Referencia para ${R.nombre.toLowerCase()}`;
 
   // Cada año usa el estado de resultados si tiene datos; si no, la previsión de ventas.
   const usaResultados = y0.res.tieneDatos;
@@ -206,11 +254,11 @@ export function analizar(M) {
     const mbs = M.anos.map((a) => div(utilBruta(a), ingresos(a)));
     const tendencia = ok(mbs[2]) && ok(mbs[0]) ? mbs[2] - mbs[0] : ok(mbs[1]) && ok(mbs[0]) ? mbs[1] - mbs[0] : NaN;
     agregar({
-      area: "rentabilidad", id: "margenBruto", estado: mb < 0 ? "alerta" : ok(tendencia) && tendencia < -0.03 ? "atencion" : mb >= 0.3 ? "fortaleza" : "atencion",
+      area: "rentabilidad", id: "margenBruto", estado: mb < 0 ? "alerta" : ok(tendencia) && tendencia < -0.03 ? "atencion" : mb >= R.mb ? "fortaleza" : "atencion",
       valor: pct(mb), titulo: "Margen bruto",
       cliente: mb < 0 ? "Sus ventas no alcanzan para cubrir el costo de lo que vende."
         : `De cada ${M.simbolo}100 que vende, le quedan ${M.simbolo}${Math.round(mb * 100)} después del costo de lo vendido${ok(tendencia) && tendencia < -0.03 ? ", y ese margen baja con los años" : ""}.`,
-      asesor: `Margen bruto año 1: ${pct(mb)}; años 2 y 3: ${pct(mbs[1])} y ${pct(mbs[2])} (cada año según el estado de resultados si tiene datos, o la previsión de ventas). El margen bruto sano depende de la actividad (comercio, servicios y manufactura difieren); ${ok(tendencia) && tendencia < -0.03 ? `cae ${pct(-tendencia)}, lo que sugiere costos que crecen más rápido que los precios.` : "comparar con empresas similares del sector."}`,
+      asesor: `Margen bruto año 1: ${pct(mb)}; años 2 y 3: ${pct(mbs[1])} y ${pct(mbs[2])} (cada año según el estado de resultados si tiene datos, o la previsión de ventas). ${ref}: ${pct(R.mb)} o más. ${ok(tendencia) && tendencia < -0.03 ? `cae ${pct(-tendencia)}, lo que sugiere costos que crecen más rápido que los precios.` : "comparar con empresas similares del sector."}`,
       preguntas: ["¿Sus proveedores han aumentado precios en el último año?", "¿Trasladó esos aumentos a sus precios de venta?"],
     }, ["precio", "costos"]);
   }
@@ -219,17 +267,17 @@ export function analizar(M) {
     const ebit = r.antes + r.intereses;
     const mo = div(ebit, r.ventasNetas), mn = div(r.neto, r.ventasNetas);
     agregar({
-      area: "rentabilidad", id: "margenOperativo", estado: nivel(mo, 0.1, 0.03), valor: pct(mo),
+      area: "rentabilidad", id: "margenOperativo", estado: nivel(mo, ...R.mo), valor: pct(mo),
       titulo: "Margen operativo",
-      cliente: mo >= 0.1 ? "Su operación es rentable antes de intereses e impuestos." : mo >= 0.03 ? "Su operación deja poca ganancia después de los gastos." : "Sus gastos de operación consumen casi toda (o más que) la utilidad bruta.",
-      asesor: `Margen operativo (utilidad antes de intereses e impuestos ÷ ventas netas) año 1: ${pct(mo)}. Referencia general: más de 10 % sólido, 3–10 % ajustado, menos de 3 % frágil. Gastos de operación: ${fm(r.gastosOperacion)} (${pct(div(r.gastosOperacion, r.ventasNetas))} de las ventas).`,
+      cliente: mo >= R.mo[0] ? "Su operación es rentable antes de intereses e impuestos." : mo >= R.mo[1] ? "Su operación deja poca ganancia después de los gastos." : "Sus gastos de operación consumen casi toda (o más que) la utilidad bruta.",
+      asesor: `Margen operativo (utilidad antes de intereses e impuestos ÷ ventas netas) año 1: ${pct(mo)}. ${ref}: ${pct(R.mo[0])} o más sólido, ${pct(R.mo[1])}–${pct(R.mo[0])} ajustado, menos de ${pct(R.mo[1])} frágil. Gastos de operación: ${fm(r.gastosOperacion)} (${pct(div(r.gastosOperacion, r.ventasNetas))} de las ventas).`,
       preguntas: ["¿Cuáles son sus tres gastos fijos más grandes?", "¿Qué gastos podría reducir sin afectar las ventas?"],
     }, ["gastos", "precio"]);
     agregar({
-      area: "rentabilidad", id: "margenNeto", estado: nivel(mn, 0.08, 0.02), valor: pct(mn),
+      area: "rentabilidad", id: "margenNeto", estado: nivel(mn, ...R.mn), valor: pct(mn),
       titulo: "Margen neto",
-      cliente: mn >= 0.08 ? `Su empresa gana ${M.simbolo}${Math.round(mn * 100)} de cada ${M.simbolo}100 vendidos: un buen resultado.` : mn >= 0.02 ? `Su empresa gana ${M.simbolo}${Math.round(mn * 100)} de cada ${M.simbolo}100 vendidos: es un margen ajustado.` : "Su empresa no genera utilidad neta suficiente.",
-      asesor: `Margen neto año 1: ${pct(mn)} (resultado neto ${fm(r.neto)}). Referencia general para pymes: 8 % o más es saludable; 2–8 % ajustado; menos de 2 % deja poco margen para reinvertir o pagar deudas.`,
+      cliente: mn >= R.mn[0] ? `Su empresa gana ${M.simbolo}${Math.round(mn * 100)} de cada ${M.simbolo}100 vendidos: un buen resultado.` : mn >= R.mn[1] ? `Su empresa gana ${M.simbolo}${Math.round(mn * 100)} de cada ${M.simbolo}100 vendidos: es un margen ajustado.` : "Su empresa no genera utilidad neta suficiente.",
+      asesor: `Margen neto año 1: ${pct(mn)} (resultado neto ${fm(r.neto)}). ${ref}: ${pct(R.mn[0])} o más es saludable; ${pct(R.mn[1])}–${pct(R.mn[0])} ajustado; menos de ${pct(R.mn[1])} deja poco margen para reinvertir o pagar deudas.`,
       preguntas: ["¿Qué hace hoy con las utilidades (reinversión, retiros de los socios)?"],
     }, ["gastos", "precio", "costos"]);
 
@@ -253,12 +301,12 @@ export function analizar(M) {
     const personal = r.personal;
     if (personal > 0) {
       const pp = div(personal, r.ventasNetas);
-      if (pp > 0.4) {
+      if (pp > R.planilla) {
         agregar({
           area: "eficiencia", id: "personal", estado: "atencion", valor: pct(pp),
           titulo: "Peso de la planilla",
           cliente: `Los salarios y cargas sociales equivalen al ${pct(pp)} de sus ventas.`,
-          asesor: `Costo de personal (sueldos, comisiones, cargas sociales y beneficios) = ${pct(pp)} de las ventas netas del año 1. Por encima de 35–40 % suele presionar la rentabilidad, salvo en empresas de servicios intensivas en personal. Revisar productividad por colaborador y estructura de turnos.`,
+          asesor: `Costo de personal (sueldos, comisiones, cargas sociales y beneficios) = ${pct(pp)} de las ventas netas del año 1. ${ref}: por encima de ${pct(R.planilla)} presiona la rentabilidad. Revisar productividad por colaborador y estructura de turnos.`,
           preguntas: ["¿Cuántas personas trabajan en la empresa y en qué funciones?"],
         }, ["gastos"]);
       }
@@ -271,17 +319,17 @@ export function analizar(M) {
     if (b.pc > 0) {
       const rc = b.ac / b.pc, pa = (b.ac - b.inventario) / b.pc;
       agregar({
-        area: "liquidez", id: "razonCorriente", estado: nivel(rc, 1.5, 1), valor: veces(rc),
+        area: "liquidez", id: "razonCorriente", estado: nivel(rc, ...R.rc), valor: veces(rc),
         titulo: "Razón corriente",
-        cliente: rc >= 1.5 ? "Tiene suficientes recursos de corto plazo para pagar sus deudas de corto plazo." : rc >= 1 ? "Sus recursos de corto plazo alcanzan justo para sus deudas de corto plazo." : "Sus deudas de corto plazo son mayores que sus recursos de corto plazo.",
-        asesor: `Activo corriente ÷ pasivo corriente = ${veces(rc)} (${fm(b.ac)} ÷ ${fm(b.pc)}). Referencia (CFI): 1,5–2 cómodo; 1–1,5 ajustado; menos de 1 indica posible incapacidad de cubrir obligaciones de corto plazo. Capital de trabajo: ${fm(b.ac - b.pc)}.`,
+        cliente: rc >= R.rc[0] ? "Tiene suficientes recursos de corto plazo para pagar sus deudas de corto plazo." : rc >= R.rc[1] ? "Sus recursos de corto plazo alcanzan justo para sus deudas de corto plazo." : "Sus deudas de corto plazo son mayores que sus recursos de corto plazo.",
+        asesor: `Activo corriente ÷ pasivo corriente = ${veces(rc)} (${fm(b.ac)} ÷ ${fm(b.pc)}). ${ref}: ${veces(R.rc[0])} o más cómodo; ${veces(R.rc[1])}–${veces(R.rc[0])} ajustado; menos de ${veces(R.rc[1])} indica posible dificultad para cubrir obligaciones de corto plazo (CFI). Capital de trabajo: ${fm(b.ac - b.pc)}.`,
         preguntas: ["¿Alguna vez ha tenido que atrasar pagos a proveedores o planilla?"],
       }, ["liquidez"]);
       agregar({
-        area: "liquidez", id: "pruebaAcida", estado: nivel(pa, 1, 0.7), valor: veces(pa),
+        area: "liquidez", id: "pruebaAcida", estado: nivel(pa, ...R.pa), valor: veces(pa),
         titulo: "Prueba ácida",
-        cliente: pa >= 1 ? "Puede cubrir sus deudas de corto plazo sin depender de vender inventario." : "Depende de vender su inventario para pagar sus deudas de corto plazo.",
-        asesor: `(Activo corriente − inventario) ÷ pasivo corriente = ${veces(pa)}. Referencia: 1 o más es sano; menos de 0,7 indica dependencia de la rotación del inventario para cumplir.`,
+        cliente: pa >= R.pa[0] ? "Puede cubrir sus deudas de corto plazo sin depender de vender inventario." : "Depende de vender su inventario para pagar sus deudas de corto plazo.",
+        asesor: `(Activo corriente − inventario) ÷ pasivo corriente = ${veces(pa)}. ${ref}: ${veces(R.pa[0])} o más es sano; menos de ${veces(R.pa[1])} indica dependencia de la rotación del inventario para cumplir.`,
         preguntas: ["¿Qué tan rápido se vende su inventario?"],
       }, ["liquidez", "inventario"]);
     }
@@ -337,27 +385,27 @@ export function analizar(M) {
       const dio = b.inventario > 0 && r.costo > 0 ? (b.inventario / r.costo) * 365 : NaN;
       const dpo = b.proveedores > 0 && r.costo > 0 ? (b.proveedores / r.costo) * 365 : NaN;
       if (ok(dso)) agregar({
-        area: "eficiencia", id: "diasCobro", estado: nivel(dso, 45, 90, false), valor: dias(dso),
+        area: "eficiencia", id: "diasCobro", estado: nivel(dso, ...R.cobro, false), valor: dias(dso),
         titulo: "Días de cobro",
-        cliente: dso <= 45 ? `Cobra a sus clientes en unos ${Math.round(dso)} días: un buen plazo.` : `Tarda unos ${Math.round(dso)} días en cobrar a sus clientes.`,
-        asesor: `Cuentas por cobrar ÷ ventas × 365 = ${dias(dso)}. Referencia: hasta 45 días bueno; 45–90 a vigilar; más de 90 compromete el flujo de caja y suele indicar cartera morosa. Comparar con el plazo de crédito otorgado.`,
+        cliente: dso <= R.cobro[0] ? `Cobra a sus clientes en unos ${Math.round(dso)} días: un buen plazo.` : `Tarda unos ${Math.round(dso)} días en cobrar a sus clientes.`,
+        asesor: `Cuentas por cobrar ÷ ventas × 365 = ${dias(dso)}. ${ref}: hasta ${dias(R.cobro[0])} bueno; hasta ${dias(R.cobro[1])} a vigilar; más de ${dias(R.cobro[1])} compromete el flujo de caja y suele indicar cartera morosa. Comparar con el plazo de crédito otorgado.`,
         preguntas: ["¿Qué plazo de crédito da a sus clientes?", "¿Tiene clientes con atrasos de más de 60 días?"],
       }, ["cobro", "flujo"]);
       if (ok(dio)) agregar({
-        area: "eficiencia", id: "diasInventario", estado: nivel(dio, 60, 120, false), valor: dias(dio),
+        area: "eficiencia", id: "diasInventario", estado: nivel(dio, ...R.inventario, false), valor: dias(dio),
         titulo: "Días de inventario",
-        cliente: dio <= 60 ? "Su inventario rota a buen ritmo." : `Su inventario tarda unos ${Math.round(dio)} días en venderse.`,
-        asesor: `Inventario ÷ costo de ventas × 365 = ${dias(dio)}. Referencia general: hasta 60 días ágil; más de 120 días inmoviliza efectivo y aumenta el riesgo de obsolescencia (depende mucho del sector).`,
+        cliente: dio <= R.inventario[0] ? "Su inventario rota a buen ritmo." : `Su inventario tarda unos ${Math.round(dio)} días en venderse.`,
+        asesor: `Inventario ÷ costo de ventas × 365 = ${dias(dio)}. ${ref}: hasta ${dias(R.inventario[0])} ágil; más de ${dias(R.inventario[1])} inmoviliza efectivo y aumenta el riesgo de obsolescencia o merma.`,
         preguntas: ["¿Tiene productos que no se han vendido en los últimos 3 meses?"],
       }, ["inventario"]);
       const ciclo = (ok(dso) ? dso : 0) + (ok(dio) ? dio : 0) - (ok(dpo) ? dpo : 0);
       if (ok(dso) || ok(dio)) {
         M.clave.ciclo = ciclo;
         agregar({
-          area: "eficiencia", id: "ciclo", estado: nivel(ciclo, 60, 120, false), valor: dias(ciclo),
+          area: "eficiencia", id: "ciclo", estado: nivel(ciclo, ...R.ciclo, false), valor: dias(ciclo),
           titulo: "Ciclo de conversión de efectivo",
           cliente: `Desde que paga a proveedores hasta que cobra sus ventas pasan unos ${Math.max(0, Math.round(ciclo))} días.`,
-          asesor: `Ciclo de conversión de efectivo = días de cobro + días de inventario − días de pago = ${dias(dso)} + ${dias(dio)} − ${dias(dpo)} = ${dias(ciclo)}. Un ciclo más corto requiere menos capital de trabajo (CFA Institute). Si es largo, la empresa financia a sus clientes y a su inventario con su propio efectivo o con deuda de corto plazo.`,
+          asesor: `Ciclo de conversión de efectivo = días de cobro + días de inventario − días de pago = ${dias(dso)} + ${dias(dio)} − ${dias(dpo)} = ${dias(ciclo)}. ${ref}: hasta ${dias(R.ciclo[0])} sano; más de ${dias(R.ciclo[1])} exige mucho capital de trabajo. Un ciclo más corto requiere menos capital de trabajo (CFA Institute). Si es largo, la empresa financia a sus clientes y a su inventario con su propio efectivo o con deuda de corto plazo.`,
           preguntas: ["¿Qué plazo de pago le dan sus proveedores?"],
         }, ["cobro", "inventario", "flujo"]);
       }
@@ -528,6 +576,7 @@ export function analizar(M) {
   const paraCliente = H.filter((x) => !x.soloAsesor && x.cliente);
   return {
     puntaje, calificacion, areas, hallazgos: H, recomendaciones, usaResultados, sinFinancieros,
+    sector: { id: sectorId, ...R, indicado: sectorId === M.sector },
     fortalezas: paraCliente.filter((x) => x.estado === "fortaleza"),
     mejoras: paraCliente.filter((x) => x.estado !== "fortaleza").sort((a, b) => orden[a.estado] - orden[b.estado]),
     preguntas: [...new Set(H.filter((x) => x.estado !== "fortaleza").sort((a, b) => orden[a.estado] - orden[b.estado]).flatMap((x) => x.preguntas || []))],

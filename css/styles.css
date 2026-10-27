@@ -420,6 +420,7 @@ details p { color: var(--muted); padding: 0 0 22px; margin: 0; }
 .plan-seccion h4 { font-size: 19px; margin: 16px 0 0; }
 .plan-seccion textarea { resize: vertical; }
 .plan-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; align-items: start; }
+.plan-span-2 { grid-column: 1 / -1; }
 .plan-grid-5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .plan-accion { align-self: end; }
 .plan-card { background: var(--bg-alt); border-radius: var(--radius); padding: 20px; display: grid; gap: 10px; }

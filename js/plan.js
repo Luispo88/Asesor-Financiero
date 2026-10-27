@@ -3,7 +3,7 @@
 // Todas las listas (productos, cuentas, filas, segmentos, apartados) admiten agregar elementos.
 // El análisis financiero (analisis.js) produce un diagnóstico breve para el cliente y un análisis
 // completo que solo ve el asesor.
-import { analizar } from "./analisis.js";
+import { analizar, SECTORES } from "./analisis.js";
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const MIN_PRODUCTOS = 5;
@@ -212,7 +212,12 @@ seccion("ventas", "Números", "Previsión de ventas a 3 años",
     return [
       h("div", { class: "plan-grid-2" },
         h("label", {}, "Mes de inicio", h("input", { type: "month", "data-ruta": "general.inicio" })),
-        h("label", {}, "Moneda", h("select", { "data-ruta": "general.moneda" }, h("option", { value: "CRC", text: "Colones (₡)" }), h("option", { value: "USD", text: "Dólares ($)" })))),
+        h("label", {}, "Moneda", h("select", { "data-ruta": "general.moneda" }, h("option", { value: "CRC", text: "Colones (₡)" }), h("option", { value: "USD", text: "Dólares ($)" }))),
+        h("label", { class: "plan-span-2" }, "Actividad principal de la empresa",
+          h("select", { "data-ruta": "general.sector" }, h("option", { value: "", text: "Seleccione su actividad" }),
+            Object.entries(SECTORES).filter(([id]) => id !== "general").map(([id, x]) => h("option", { value: id, text: x.nombre })),
+            h("option", { value: "general", text: "Otra actividad" })),
+          h("small", { class: "field-hint", text: "Sirve para comparar sus resultados con empresas de su misma actividad." }))),
       h("h4", { text: "Productos o servicios" }), productos,
       botonAgregar("Agregar producto o servicio", () => { lista("ventas.productos", nProductos()).push(""); cambioEstructura("ventas"); }),
       tabs, ...anos,
@@ -478,6 +483,7 @@ function pintarDiagnosticoCliente(el) {
         h("p", { class: "diag-calificacion", text: `Salud financiera: ${A.calificacion}` }),
         h("div", { class: "diag-areas" }, A.areas.filter((a) => a.peso && a.puntaje != null).map((a) => h("span", { class: "diag-area" }, chip(a.estado), h("span", { text: a.nombre })))))),
     A.sinFinancieros ? h("p", { class: "note", text: "Este diagnóstico usa solo su previsión de ventas. Complete el estado de resultados y el balance para un análisis más completo." }) : null,
+    h("p", { class: "note", text: A.sector.indicado && A.sector.id !== "general" ? `Sus resultados se comparan con referencias para: ${A.sector.nombre.toLowerCase()}.` : "Sus resultados se comparan con referencias generales. Indique su actividad en «Previsión de ventas» para una comparación más precisa." }),
     h("div", { class: "plan-grid-2" },
       h("div", { class: "plan-card" }, h("h4", { text: "Lo que va bien" }), lista(A.fortalezas.slice(0, 3), "Aún no hay suficientes datos para destacar fortalezas.")),
       h("div", { class: "plan-card" }, h("h4", { text: "Lo que conviene mejorar" }), lista(A.mejoras.slice(0, 3), "No se encontraron puntos críticos con la información actual."))),
@@ -509,6 +515,7 @@ function pintarAnalisisAsesor(el) {
     valor("dscr") ? `Cobertura del servicio de deuda: ${valor("dscr")}.` : "",
     `${fortalezas.length} fortalezas, ${atenciones.length} puntos de atención y ${alertas.length} alertas.`,
     alertas.length ? `Prioridades: ${alertas.slice(0, 3).map((x) => x.titulo.toLowerCase()).join("; ")}.` : "",
+    A.sector.id !== "general" ? `Referencias del sector: ${A.sector.nombre.toLowerCase()}.` : A.sector.indicado ? "Referencias generales (el cliente indicó «otra actividad»)." : "Referencias generales: el cliente no indicó su actividad.",
     A.usaResultados ? "" : "La rentabilidad del año 1 se calculó con la previsión de ventas porque el estado de resultados de ese año está vacío.",
   ].filter(Boolean).join(" ");
 
@@ -536,6 +543,22 @@ function pintarAnalisisAsesor(el) {
           h("tbody", {}, A.areas.map((a) => h("tr", {}, h("th", { scope: "row", text: a.nombre }),
             h("td", { class: "num", text: a.puntaje == null ? (a.hallazgos.length ? "—" : a.peso ? "Sin datos" : "Sin observaciones") : `${a.puntaje}/100` }),
             h("td", {}, a.estado ? chip(a.estado) : a.hallazgos.length ? chip(a.hallazgos.some((x) => x.estado === "alerta") ? "alerta" : "atencion", `${a.hallazgos.length} observación(es)`) : null)))))))),
+    h("details", { class: "diag-area-detalle" },
+      h("summary", {}, h("span", { text: `Referencias usadas · ${A.sector.nombre}` })),
+      A.sector.nota ? h("p", { text: A.sector.nota }) : null,
+      h("div", { class: "table-wrap" }, h("table", { class: "plan-table" },
+        h("thead", {}, h("tr", {}, ["Indicador", "Sano", "Alerta"].map((t, i) => h("th", { class: i ? "num" : null, text: t })))),
+        h("tbody", {}, [
+          ["Margen bruto", `≥ ${fmtPct(A.sector.mb)}`, "< 0 %"],
+          ["Margen operativo", `≥ ${fmtPct(A.sector.mo[0])}`, `< ${fmtPct(A.sector.mo[1])}`],
+          ["Margen neto", `≥ ${fmtPct(A.sector.mn[0])}`, `< ${fmtPct(A.sector.mn[1])}`],
+          ["Razón corriente", `≥ ${fmtRazon(A.sector.rc[0])}`, `< ${fmtRazon(A.sector.rc[1])}`],
+          ["Prueba ácida", `≥ ${fmtRazon(A.sector.pa[0])}`, `< ${fmtRazon(A.sector.pa[1])}`],
+          ["Días de cobro", `≤ ${A.sector.cobro[0]}`, `> ${A.sector.cobro[1]}`],
+          ["Días de inventario", `≤ ${A.sector.inventario[0]}`, `> ${A.sector.inventario[1]}`],
+          ["Ciclo de conversión de efectivo (días)", `≤ ${A.sector.ciclo[0]}`, `> ${A.sector.ciclo[1]}`],
+          ["Planilla / ventas", "—", `> ${fmtPct(A.sector.planilla)} (atención)`],
+        ].map((f) => h("tr", {}, h("th", { scope: "row", text: f[0] }), h("td", { class: "num", text: f[1] }), h("td", { class: "num", text: f[2] }))))))),
     h("h4", { text: "Hallazgos por área" }),
     A.areas.filter((a) => a.hallazgos.length).map((a) => h("details", { class: "diag-area-detalle", open: a.hallazgos.some((x) => x.estado !== "fortaleza") },
       h("summary", {}, h("span", { text: a.nombre }), h("span", { class: "muted-small", text: `${a.hallazgos.length} hallazgo(s)` })),
@@ -556,7 +579,8 @@ function pintarAnalisisAsesor(el) {
         "Cobertura del servicio de deuda: las entidades financieras suelen exigir 1,25 veces o más para crédito a pymes.",
         "Crecimiento real: comparado con la meta de inflación del BCCR (3 % ± 1 punto porcentual).",
         "Punto de equilibrio y margen de seguridad: gastos de operación tratados como fijos y margen bruto como margen de contribución.",
-        "Los rangos de referencia son generales; ajústelos según la actividad y el tamaño de la empresa.",
+        "Rangos por actividad: referencias para pequeñas empresas (Crestmont Capital y BizMiner, 2026), márgenes por industria de Damodaran (NYU Stern, enero de 2026) y rotación de inventario por industria (OnRamp Funds, 2026), ajustados a la escala de una pyme. Endeudamiento, cobertura y flujo usan los mismos rangos para todas las actividades.",
+        "Los rangos son orientativos: compárelos con la experiencia de empresas similares en Costa Rica.",
       ].map((t) => h("li", { text: t })))));
 }
 
@@ -570,6 +594,7 @@ function calcular() {
   const modelo = {
     anos: ANOS.map(() => ({ ventas: { porProducto: [], mesesIngreso: Array(12).fill(0) }, res: {}, bal: {}, flujo: {} })),
     fmt: fmtMoneda, mes: etiquetaMes, ano: etiquetaAno, simbolo: moneda() === "USD" ? "$" : "₡", clave: {},
+    sector: leer("general.sector") || "general",
   };
 
   // Ventas

@@ -45,7 +45,37 @@ agregar({
 - Calificación: **Sólida** ≥ 75, **Estable** ≥ 55, **Requiere atención** ≥ 35, **En riesgo** < 35 (el panel cuenta "en riesgo" con el mismo corte). Sin áreas con datos: "Sin datos suficientes".
 - Si cambia pesos o cortes, el puntaje de todos los clientes cambia en el panel: avísele al usuario antes.
 
-## Rangos de referencia actuales
+## Referencias por actividad
+
+El cliente elige su actividad en la sección "Previsión de ventas" (`general.sector`); el modelo la
+lleva en `M.sector` y `analizar()` toma los rangos de `SECTORES` en `js/analisis.js`. Sin
+actividad, u "Otra actividad", se usa `general` (la tabla de abajo). El resultado incluye
+`A.sector` (`id`, `nombre`, rangos, `nota`, `indicado`); el diagnóstico del cliente dice con qué se
+comparó y el análisis del asesor muestra la tabla "Referencias usadas".
+
+| Actividad | Margen bruto | Margen op. | Margen neto | Razón corriente | Prueba ácida | Días cobro | Días inventario | Ciclo | Planilla (atención) |
+|---|---|---|---|---|---|---|---|---|---|
+| General | 30 % | 10 / 3 % | 8 / 2 % | 1,5 / 1 | 1 / 0,7 | 45 / 90 | 60 / 120 | 60 / 120 | > 40 % |
+| Comercio | 25 % | 5 / 1,5 % | 4 / 1 % | 1,5 / 1 | 0,5 / 0,3 | 30 / 60 | 60 / 120 | 45 / 90 | > 20 % |
+| Restaurantes | 60 % | 8 / 3 % | 6 / 2 % | 1 / 0,7 | 0,7 / 0,4 | 10 / 30 | 10 / 20 | 10 / 30 | > 38 % |
+| Servicios | 50 % | 15 / 5 % | 10 / 3 % | 1,5 / 1 | 1,2 / 0,8 | 45 / 90 | 30 / 60 | 45 / 90 | > 55 % |
+| Manufactura | 30 % | 8 / 3 % | 6 / 2 % | 1,5 / 1,1 | 0,8 / 0,5 | 60 / 90 | 90 / 150 | 90 / 150 | > 35 % |
+| Construcción | 20 % | 6 / 2 % | 4 / 1,5 % | 1,3 / 1 | 1 / 0,7 | 60 / 90 | 45 / 90 | 60 / 120 | > 40 % |
+| Agropecuario | 25 % | 8 / 2 % | 5 / 1 % | 1,5 / 1,1 | 0,8 / 0,5 | 45 / 90 | 120 / 240 | 120 / 240 | > 40 % |
+
+Cada par es sano / alerta. Margen bruto: el valor es el mínimo para "fortaleza"; por debajo es
+atención, y alerta solo si es negativo. Endeudamiento, cobertura de intereses, DSCR, flujo,
+crecimiento, concentración y estacionalidad usan **los mismos rangos para todas las actividades**.
+
+Fuentes de los rangos por actividad: Crestmont Capital y BizMiner (2026, referencias para pequeñas
+empresas), Damodaran (NYU Stern, enero de 2026, márgenes de empresas que cotizan en EE. UU., como
+techo) y OnRamp Funds (2026, rotación de inventario), ajustados a la escala de una pyme. No hay una
+tabla oficial de razones por sector para pymes de Costa Rica: si el usuario aporta datos locales
+(su experiencia de crédito, SUGEF, cámaras empresariales), prefiéralos. Para una actividad nueva,
+agréguela a `SECTORES` con su `nota` y la prueba de `probar.mjs` (espera 8 opciones en el
+selector) debe actualizarse.
+
+## Rangos de referencia generales
 
 | Área | Indicador | Fortaleza | Alerta |
 |---|---|---|---|
@@ -71,7 +101,7 @@ agregar({
 | Flujo | Efectivo final negativo, flujo operativo negativo | — | alerta |
 | Flujo | Financiamiento mayor que el flujo operativo | — | atención |
 
-Fuentes, anotadas en el encabezado de `js/analisis.js`: Corporate Finance Institute (*Financial Ratios Definitive Guide*), CFA Institute (ciclo de conversión de efectivo), práctica bancaria para el DSCR de 1,25 y la meta de inflación del BCCR (3 % ± 1). Son **rangos generales**: un comercio, un restaurante, un servicio y una industria tienen márgenes y ciclos distintos. Si el usuario pide ajustes por sector, propóngalos citando una fuente reconocida y confírmelos con él antes de cambiarlos.
+Fuentes, anotadas en el encabezado de `js/analisis.js`: Corporate Finance Institute (*Financial Ratios Definitive Guide*), CFA Institute (ciclo de conversión de efectivo), práctica bancaria para el DSCR de 1,25 y la meta de inflación del BCCR (3 % ± 1). Para cambiar un rango (general o de una actividad), propóngalo citando una fuente reconocida y confírmelo con el usuario antes de aplicarlo.
 
 ## Cómo agregar o cambiar una regla
 
@@ -79,7 +109,7 @@ Fuentes, anotadas en el encabezado de `js/analisis.js`: Corporate Finance Instit
 2. Use el modelo `M`. Si necesita un dato nuevo, calcúlelo en `calcular()` de `plan.js` y agréguelo al modelo, no al análisis.
 3. Escriba los dos textos: **cliente** (breve, sencillo, en "usted", sin jerga; vea el skill **estilo-y-tono**) y **asesor** (cálculo, referencia, interpretación). Agregue 1 o 2 preguntas útiles para la reunión.
 4. Reutilice una recomendación de `RECOMENDACIONES` o cree una nueva con sus dos versiones, `cliente` y `asesor`.
-5. Revise los números a mano con un caso de ejemplo. Los planes `SANA` (puntaje 100, Sólida) y `RIESGO` (28, En riesgo) de `herramientas/pruebas/probar.mjs` sirven de referencia: si un cambio mueve esos puntajes, explique por qué.
+5. Revise los números a mano con un caso de ejemplo. Los planes `SANA` (puntaje 100, Sólida; 91 evaluado como restaurante) y `RIESGO` (28, En riesgo) de `herramientas/pruebas/probar.mjs` sirven de referencia: si un cambio mueve esos puntajes, explique por qué.
 6. Corra las pruebas (skill **probar-sitio**) y agregue una que cubra la regla nueva.
 
 ## Límites

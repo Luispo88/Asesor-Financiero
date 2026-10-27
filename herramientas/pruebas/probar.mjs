@@ -181,6 +181,23 @@ seccion("Análisis financiero");
     revisar(!/\[object|null|undefined|NaN/.test(texto), `empresa ${nombre}: el análisis del asesor no muestra valores rotos`);
     revisar(await p.locator("#plan-secciones input:not([disabled])").count() === 0, `empresa ${nombre}: el asesor ve el plan en solo lectura`);
   }
+
+  // Referencias por actividad: la misma empresa se evalúa distinto como restaurante.
+  const comoRestaurante = { ...SANA, general: { ...SANA.general, sector: "restaurante" } };
+  const docsR = { "planes/c1": { json: JSON.stringify(comoRestaurante) }, "usuarios/c1": { nombre: "Ana Pérez", empresa: "Panadería" } };
+  await sembrar(p, { usuarios, sesion: { uid: "c1", email: "cliente@e.com" }, docs: docsR });
+  await p.goto(B + "clientes/plan.html"); await p.waitForSelector("#plan-app:not([hidden])");
+  revisar(await p.locator('[data-ruta="general.sector"] option').count() === 8, "el plan ofrece las actividades para elegir");
+  revisar(await p.inputValue('[data-ruta="general.sector"]') === "restaurante", "la actividad elegida se conserva");
+  await p.click('[data-nav="diagnostico"]');
+  revisar(/restaurantes, sodas y cafeterías/.test(await p.locator("#diag-cliente").innerText()), "el cliente ve con qué actividad se comparó");
+  await sembrar(p, { usuarios, sesion: { uid: "adm", email: ASESOR }, docs: docsR });
+  await p.goto(B + "clientes/plan.html?cliente=c1"); await p.waitForSelector("#plan-app:not([hidden])");
+  const textoR = await p.locator("#diag-asesor").innerText();
+  revisar(/Referencias del sector: restaurantes/.test(textoR) && /Referencia para restaurantes/.test(textoR), "el análisis del asesor usa las referencias de restaurantes");
+  revisar(!/\[object|null|undefined|NaN/.test(textoR), "el análisis por actividad no muestra valores rotos");
+  const puntajeR = await p.evaluate(async (doc) => (await import("/js/plan.js")).diagnosticoDePlan(doc).analisis.puntaje, docsR["planes/c1"]);
+  revisar(puntajeR === 91, `como restaurante, la empresa sana obtiene 91 en lugar de 100 (obtenido: ${puntajeR})`);
   revisar(p.errores.length === 0, "análisis sin errores: " + p.errores.join(" | "));
   await ctx.close();
 }
